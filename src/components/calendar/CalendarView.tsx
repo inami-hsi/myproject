@@ -122,6 +122,8 @@ export default function CalendarView() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setMode("month")}
+            aria-label="Switch to month view"
+            aria-pressed={mode === "month"}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium transition-colors duration-150",
               mode === "month"
@@ -134,6 +136,8 @@ export default function CalendarView() {
           </button>
           <button
             onClick={() => setMode("week")}
+            aria-label="Switch to week view"
+            aria-pressed={mode === "week"}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium transition-colors duration-150",
               mode === "week"
@@ -150,6 +154,7 @@ export default function CalendarView() {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrev}
+            aria-label={`Go to previous ${mode}`}
             className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -159,12 +164,14 @@ export default function CalendarView() {
           </h2>
           <button
             onClick={handleNext}
+            aria-label={`Go to next ${mode}`}
             className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
           <button
             onClick={handleToday}
+            aria-label="Jump to today"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150 ml-1"
           >
             Today
@@ -205,6 +212,8 @@ export default function CalendarView() {
               <div
                 key={day.toISOString()}
                 onClick={() => handleDateClick(day)}
+                role="button"
+                aria-label={`${format(day, "M月d日")} ${dayTasks.length > 0 ? `${dayTasks.length} tasks` : "no tasks"}`}
                 className={cn(
                   "border-b border-r border-border/50 p-1.5 cursor-pointer transition-colors duration-150",
                   mode === "month" ? "min-h-[100px]" : "min-h-[200px]",
@@ -241,6 +250,7 @@ export default function CalendarView() {
                         e.stopPropagation();
                         handleTaskClick(task);
                       }}
+                      aria-label={`Open task: ${task.title}`}
                       className="flex items-center gap-1 w-full px-1 py-0.5 rounded text-left hover:bg-secondary transition-colors duration-150 group/chip"
                     >
                       <span
@@ -283,6 +293,7 @@ export default function CalendarView() {
                 <button
                   key={task.id}
                   onClick={() => handleTaskClick(task)}
+                  aria-label={`Open task: ${task.title}, ${task.progress}% complete`}
                   className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-secondary transition-colors duration-150 text-left"
                 >
                   <span

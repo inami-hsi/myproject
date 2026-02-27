@@ -60,6 +60,8 @@ export function TaskFilters() {
             <button
               key={status}
               onClick={() => toggleStatus(status)}
+              aria-label={`Filter by ${STATUS_LABELS[status]}`}
+              aria-pressed={isActive}
               className={cn(
                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-normal transition-all duration-200",
                 isActive
@@ -87,6 +89,8 @@ export function TaskFilters() {
             <button
               key={priority}
               onClick={() => togglePriority(priority)}
+              aria-label={`Filter by ${PRIORITY_LABELS[priority]}`}
+              aria-pressed={isActive}
               className={cn(
                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-normal transition-all duration-200",
                 isActive
@@ -108,6 +112,7 @@ export function TaskFilters() {
             variant="ghost"
             size="sm"
             onClick={clearAll}
+            aria-label="Clear all filters"
             className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="mr-1 h-3 w-3" />

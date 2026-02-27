@@ -143,6 +143,7 @@ export function CommentList({ taskId }: CommentListProps) {
             size="sm"
             onClick={handleSubmit}
             disabled={!content.trim() || submitting}
+            aria-label="Submit comment"
             className="gap-1.5"
           >
             {submitting ? (

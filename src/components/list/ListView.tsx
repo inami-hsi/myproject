@@ -131,6 +131,8 @@ export default function ListView() {
                 <th
                   key={col.field}
                   onClick={() => handleSort(col.field)}
+                  aria-sort={sort.field === col.field ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
+                  aria-label={`Sort by ${col.label}`}
                   className={cn(
                     "group/header px-4 py-2.5 text-left text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors duration-150",
                     col.width
@@ -159,6 +161,8 @@ export default function ListView() {
                 <tr
                   key={task.id}
                   onClick={() => handleRowClick(task)}
+                  role="button"
+                  aria-label={`Open task: ${task.title}`}
                   className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors duration-150"
                 >
                   {/* Title */}

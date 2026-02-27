@@ -138,6 +138,7 @@ export function TagManager({ projectId }: TagManagerProps) {
               <button
                 key={c}
                 type="button"
+                aria-label={`Select color ${c}`}
                 className={cn(
                   "h-5 w-5 rounded-full border-2 transition-all duration-200",
                   color === c

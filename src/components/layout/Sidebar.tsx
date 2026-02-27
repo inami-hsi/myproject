@@ -48,7 +48,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <div className="px-3 py-4">
-        <Link href="/dashboard" onClick={handleClick}>
+        <Link href="/dashboard" onClick={handleClick} aria-label="Navigate to dashboard">
           <Button
             variant="ghost"
             className={cn(
@@ -69,8 +69,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-heading">
           Projects
         </span>
-        <Link href="/dashboard" onClick={handleClick}>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
+        <Link href="/dashboard" onClick={handleClick} aria-label="Create new project">
+          <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Create new project">
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </Link>
@@ -83,6 +83,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               key={project.id}
               href={`/dashboard/projects/${project.id}`}
               onClick={handleClick}
+              aria-label={`Open project: ${project.name}${project._count ? `, ${project._count.tasks} tasks` : ""}`}
             >
               <Button
                 variant="ghost"
@@ -121,6 +122,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           variant="ghost"
           className="w-full justify-start gap-2 text-sm"
           onClick={handleClick}
+          aria-label="Open settings"
         >
           <Settings className="h-4 w-4" />
           Settings

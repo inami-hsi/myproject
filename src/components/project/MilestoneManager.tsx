@@ -126,6 +126,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={confirmDeleteId === milestone.id ? `Confirm delete milestone: ${milestone.name}` : `Delete milestone: ${milestone.name}`}
                 className={cn(
                   "h-7 w-7 shrink-0",
                   confirmDeleteId === milestone.id &&
@@ -173,6 +174,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
               <button
                 key={c}
                 type="button"
+                aria-label={`Select color ${c}`}
                 className={cn(
                   "h-5 w-5 rounded-full border-2 transition-all duration-200",
                   color === c
