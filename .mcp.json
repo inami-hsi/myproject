@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ccagi-tools": {
+      "command": "/home/hsi/.ccagi/bin/ccagi-tools-server",
+      "args": []
+    }
+  }
+}

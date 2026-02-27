@@ -1,0 +1,230 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useProjectStore } from "@/stores/projectStore";
+import { useTaskStore } from "@/stores/taskStore";
+import { useUIStore } from "@/stores/uiStore";
+import { TaskDetail } from "@/components/task/TaskDetail";
+import { TaskFilters } from "@/components/task/TaskFilters";
+import { TaskForm } from "@/components/task/TaskForm";
+import { ProjectSidebar } from "@/components/project/ProjectSidebar";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  GanttChart,
+  Kanban,
+  Calendar,
+  List,
+  Plus,
+  Loader2,
+  SlidersHorizontal,
+} from "lucide-react";
+import type { ViewMode } from "@/types";
+
+// Lazy-loaded view components (will be created by view component task)
+const GanttViewPlaceholder = dynamic(
+  () =>
+    Promise.resolve(function GanttView() {
+      return (
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
+          Gantt view - Component pending
+        </div>
+      );
+    }),
+  { ssr: false }
+);
+
+const KanbanViewPlaceholder = dynamic(
+  () =>
+    Promise.resolve(function KanbanView() {
+      return (
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
+          Kanban view - Component pending
+        </div>
+      );
+    }),
+  { ssr: false }
+);
+
+const CalendarViewPlaceholder = dynamic(
+  () =>
+    Promise.resolve(function CalendarView() {
+      return (
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
+          Calendar view - Component pending
+        </div>
+      );
+    }),
+  { ssr: false }
+);
+
+const ListViewPlaceholder = dynamic(
+  () =>
+    Promise.resolve(function ListView() {
+      return (
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
+          List view - Component pending
+        </div>
+      );
+    }),
+  { ssr: false }
+);
+
+const VIEW_ICONS: Record<ViewMode, React.ReactNode> = {
+  gantt: <GanttChart className="h-4 w-4" />,
+  kanban: <Kanban className="h-4 w-4" />,
+  calendar: <Calendar className="h-4 w-4" />,
+  list: <List className="h-4 w-4" />,
+};
+
+const VIEW_LABELS: Record<ViewMode, string> = {
+  gantt: "Gantt",
+  kanban: "Kanban",
+  calendar: "Calendar",
+  list: "List",
+};
+
+export default function ProjectDetailPage() {
+  const params = useParams();
+  const projectId = params.projectId as string;
+
+  const { currentProject, fetchProject, loading: projectLoading } =
+    useProjectStore();
+  const { tasks, selectedTask, fetchTasks, setSelectedTask, loading: taskLoading } =
+    useTaskStore();
+  const { viewMode, setViewMode, taskDetailOpen, setTaskDetailOpen } =
+    useUIStore();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProject(projectId);
+      fetchTasks(projectId);
+    }
+  }, [projectId, fetchProject, fetchTasks]);
+
+  const loading = projectLoading || taskLoading;
+
+  if (loading && !currentProject) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Project Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          {currentProject && (
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: currentProject.color }}
+            />
+          )}
+          <h1 className="text-2xl font-bold font-heading tracking-tight">
+            {currentProject?.name ?? "Project"}
+          </h1>
+          <span className="text-sm text-muted-foreground">
+            {tasks.length} tasks
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltersVisible(!filtersVisible)}
+          >
+            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            Filters
+          </Button>
+
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Task
+              </Button>
+            </DialogTrigger>
+            <TaskForm
+              projectId={projectId}
+              onSuccess={() => setCreateOpen(false)}
+            />
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Filters */}
+      {filtersVisible && <TaskFilters />}
+
+      {/* View Tabs */}
+      <Tabs
+        value={viewMode}
+        onValueChange={(v) => setViewMode(v as ViewMode)}
+      >
+        <TabsList>
+          {(Object.keys(VIEW_LABELS) as ViewMode[]).map((mode) => (
+            <TabsTrigger key={mode} value={mode} className="gap-2">
+              {VIEW_ICONS[mode]}
+              <span className="hidden sm:inline">{VIEW_LABELS[mode]}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="gantt">
+          <GanttViewPlaceholder />
+        </TabsContent>
+        <TabsContent value="kanban">
+          <KanbanViewPlaceholder />
+        </TabsContent>
+        <TabsContent value="calendar">
+          <CalendarViewPlaceholder />
+        </TabsContent>
+        <TabsContent value="list">
+          <ListViewPlaceholder />
+        </TabsContent>
+      </Tabs>
+
+      {/* Task Detail Side Panel */}
+      <Sheet
+        open={taskDetailOpen && selectedTask !== null}
+        onOpenChange={(open) => {
+          setTaskDetailOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Task Details</SheetTitle>
+          </SheetHeader>
+          {selectedTask && (
+            <TaskDetail
+              task={selectedTask}
+              onClose={() => {
+                setTaskDetailOpen(false);
+                setSelectedTask(null);
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Project Sidebar Info (on larger screens, shown as aside) */}
+      <div className="mt-6 lg:hidden">
+        <ProjectSidebar project={currentProject} tasks={tasks} />
+      </div>
+    </div>
+  );
+}

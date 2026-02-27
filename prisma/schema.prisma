@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  avatar    String?
+  cognitoId String    @unique
+  projects  Project[]
+  tasks     Task[]    @relation("assignee")
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Project {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  color       String      @default("#e07a5f")
+  archived    Boolean     @default(false)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  tasks       Task[]
+  milestones  Milestone[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Task {
+  id           String           @id @default(cuid())
+  title        String
+  description  String?
+  status       TaskStatus       @default(TODO)
+  priority     Priority         @default(MEDIUM)
+  progress     Int              @default(0)
+  startDate    DateTime?
+  endDate      DateTime?
+  dueDate      DateTime?
+  sortOrder    Int              @default(0)
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId   String?
+  assignee     User?            @relation("assignee", fields: [assigneeId], references: [id])
+  parentId     String?
+  parent       Task?            @relation("subtasks", fields: [parentId], references: [id])
+  subtasks     Task[]           @relation("subtasks")
+  tags         TagOnTask[]
+  comments     Comment[]
+  dependencies TaskDependency[] @relation("dependent")
+  dependents   TaskDependency[] @relation("dependency")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model TaskDependency {
+  id           String         @id @default(cuid())
+  type         DependencyType @default(FS)
+  dependentId  String
+  dependent    Task           @relation("dependent", fields: [dependentId], references: [id], onDelete: Cascade)
+  dependencyId String
+  dependency   Task           @relation("dependency", fields: [dependencyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+
+  @@unique([dependentId, dependencyId])
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  name      String
+  date      DateTime
+  color     String   @default("#8b7ec8")
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id    String      @id @default(cuid())
+  name  String      @unique
+  color String      @default("#9ca3af")
+  tasks TagOnTask[]
+}
+
+model TagOnTask {
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  ON_HOLD
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum DependencyType {
+  FS
+  SS
+  FF
+  SF
+}
