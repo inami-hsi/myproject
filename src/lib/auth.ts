@@ -9,7 +9,7 @@ export async function getCurrentUser() {
 }
 
 export async function getOrCreateDemoUser() {
-  const email = "demo@taskflow.local";
+  const email = "demo@taskflow.dev";
   let user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     user = await prisma.user.create({
