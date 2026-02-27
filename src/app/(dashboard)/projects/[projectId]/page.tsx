@@ -10,6 +10,7 @@ import { TaskDetail } from "@/components/task/TaskDetail";
 import { TaskFilters } from "@/components/task/TaskFilters";
 import { TaskForm } from "@/components/task/TaskForm";
 import { ProjectSidebar } from "@/components/project/ProjectSidebar";
+import { useMilestones } from "@/hooks/useMilestones";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -25,52 +26,24 @@ import {
 } from "lucide-react";
 import type { ViewMode } from "@/types";
 
-// Lazy-loaded view components (will be created by view component task)
-const GanttViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function GanttView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Gantt view - Component pending
-        </div>
-      );
-    }),
+// Lazy-loaded view components
+const GanttView = dynamic(
+  () => import("@/components/gantt/GanttChart"),
   { ssr: false }
 );
 
-const KanbanViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function KanbanView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Kanban view - Component pending
-        </div>
-      );
-    }),
+const KanbanView = dynamic(
+  () => import("@/components/kanban/KanbanColumn"),
   { ssr: false }
 );
 
-const CalendarViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function CalendarView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Calendar view - Component pending
-        </div>
-      );
-    }),
+const CalendarView = dynamic(
+  () => import("@/components/calendar/CalendarView"),
   { ssr: false }
 );
 
-const ListViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function ListView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          List view - Component pending
-        </div>
-      );
-    }),
+const ListView = dynamic(
+  () => import("@/components/list/ListView"),
   { ssr: false }
 );
 
@@ -94,10 +67,11 @@ export default function ProjectDetailPage() {
 
   const { currentProject, fetchProject, loading: projectLoading } =
     useProjectStore();
-  const { tasks, selectedTask, fetchTasks, setSelectedTask, loading: taskLoading } =
+  const { tasks, selectedTask, fetchTasks, setSelectedTask, updateTask, loading: taskLoading } =
     useTaskStore();
   const { viewMode, setViewMode, taskDetailOpen, setTaskDetailOpen } =
     useUIStore();
+  const { milestones, fetchMilestones } = useMilestones(projectId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -106,8 +80,9 @@ export default function ProjectDetailPage() {
     if (projectId) {
       fetchProject(projectId);
       fetchTasks(projectId);
+      fetchMilestones();
     }
-  }, [projectId, fetchProject, fetchTasks]);
+  }, [projectId, fetchProject, fetchTasks, fetchMilestones]);
 
   const loading = projectLoading || taskLoading;
 
@@ -184,16 +159,36 @@ export default function ProjectDetailPage() {
         </TabsList>
 
         <TabsContent value="gantt">
-          <GanttViewPlaceholder />
+          <GanttView
+            tasks={tasks}
+            milestones={milestones}
+            onTaskClick={(task) => {
+              setSelectedTask(task);
+              setTaskDetailOpen(true);
+            }}
+            onTaskUpdate={(id, updates) => updateTask(id, updates)}
+          />
         </TabsContent>
         <TabsContent value="kanban">
-          <KanbanViewPlaceholder />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {(["TODO", "IN_PROGRESS", "DONE", "ON_HOLD"] as const).map((status) => (
+              <KanbanView
+                key={status}
+                status={status}
+                tasks={tasks.filter((t) => t.status === status)}
+                onTaskClick={(task) => {
+                  setSelectedTask(task);
+                  setTaskDetailOpen(true);
+                }}
+              />
+            ))}
+          </div>
         </TabsContent>
         <TabsContent value="calendar">
-          <CalendarViewPlaceholder />
+          <CalendarView />
         </TabsContent>
         <TabsContent value="list">
-          <ListViewPlaceholder />
+          <ListView />
         </TabsContent>
       </Tabs>
 
