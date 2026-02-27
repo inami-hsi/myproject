@@ -58,32 +58,32 @@ export function ProjectForm({ onSuccess }: ProjectFormProps) {
     <DialogContent className="sm:max-w-md">
       <form onSubmit={handleSubmit}>
         <DialogHeader>
-          <DialogTitle className="font-heading">New Project</DialogTitle>
+          <DialogTitle className="font-heading">新規プロジェクト</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="project-name">Name</Label>
+            <Label htmlFor="project-name">名前</Label>
             <Input
               id="project-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Project name"
+              placeholder="プロジェクト名"
               required
               autoFocus
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="project-description">Description</Label>
+            <Label htmlFor="project-description">説明</Label>
             <Textarea
               id="project-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description"
+              placeholder="説明（任意）"
               rows={3}
             />
           </div>
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>カラー</Label>
             <div className="flex gap-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -96,7 +96,7 @@ export function ProjectForm({ onSuccess }: ProjectFormProps) {
                       : "hover:scale-105"
                   }`}
                   style={{ backgroundColor: c }}
-                  aria-label={`Color ${c}`}
+                  aria-label={`カラー ${c}`}
                 />
               ))}
             </div>
@@ -109,7 +109,7 @@ export function ProjectForm({ onSuccess }: ProjectFormProps) {
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Project
+            プロジェクトを作成
           </Button>
         </DialogFooter>
       </form>

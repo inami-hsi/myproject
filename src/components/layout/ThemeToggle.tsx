@@ -15,7 +15,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" aria-label="Toggle theme">
+      <Button variant="ghost" size="icon" aria-label="テーマを切り替え">
         <Sun className="h-4 w-4" />
       </Button>
     );
@@ -26,7 +26,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
+      aria-label="テーマを切り替え"
     >
       {resolvedTheme === "dark" ? (
         <Sun className="h-4 w-4 transition-transform duration-200" />

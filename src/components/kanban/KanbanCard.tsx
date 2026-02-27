@@ -54,7 +54,7 @@ export default function KanbanCard({ task, onClick }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      aria-label={`Task: ${task.title}, ${PRIORITY_LABELS[task.priority]} priority. Drag to reorder.`}
+      aria-label={`タスク: ${task.title}、優先度${PRIORITY_LABELS[task.priority]}。ドラッグで並べ替え。`}
       role="button"
       className={cn(
         "group rounded-lg border border-border bg-card p-3 cursor-pointer",

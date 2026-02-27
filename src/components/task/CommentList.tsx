@@ -91,7 +91,7 @@ export function CommentList({ taskId }: CommentListProps) {
       {comments.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
           <MessageSquare className="mb-2 h-8 w-8" />
-          <p className="text-sm">No comments yet</p>
+          <p className="text-sm">コメントはありません</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -107,7 +107,7 @@ export function CommentList({ taskId }: CommentListProps) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium font-heading">
-                      {comment.user?.name || comment.user?.email || "Unknown"}
+                      {comment.user?.name || comment.user?.email || "不明"}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.createdAt), {
@@ -131,7 +131,7 @@ export function CommentList({ taskId }: CommentListProps) {
       <Separator />
       <div className="space-y-3">
         <Textarea
-          placeholder="Add a comment... (Ctrl+Enter to submit)"
+          placeholder="コメントを入力... (Ctrl+Enterで送信)"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -143,7 +143,7 @@ export function CommentList({ taskId }: CommentListProps) {
             size="sm"
             onClick={handleSubmit}
             disabled={!content.trim() || submitting}
-            aria-label="Submit comment"
+            aria-label="コメントを送信"
             className="gap-1.5"
           >
             {submitting ? (
@@ -151,7 +151,7 @@ export function CommentList({ taskId }: CommentListProps) {
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            Submit
+            送信
           </Button>
         </div>
       </div>

@@ -37,7 +37,7 @@ const PRIORITY_DOT_COLORS: Record<string, string> = {
   LOW: "#9ca3af",
 };
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
 
 function getTasksForDate(tasks: Task[], date: Date): Task[] {
   return tasks.filter((task) => {
@@ -122,7 +122,7 @@ export default function CalendarView() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setMode("month")}
-            aria-label="Switch to month view"
+            aria-label="月表示に切り替え"
             aria-pressed={mode === "month"}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium transition-colors duration-150",
@@ -132,11 +132,11 @@ export default function CalendarView() {
             )}
           >
             <Calendar className="h-3.5 w-3.5" />
-            Month
+            月
           </button>
           <button
             onClick={() => setMode("week")}
-            aria-label="Switch to week view"
+            aria-label="週表示に切り替え"
             aria-pressed={mode === "week"}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium transition-colors duration-150",
@@ -146,7 +146,7 @@ export default function CalendarView() {
             )}
           >
             <CalendarDays className="h-3.5 w-3.5" />
-            Week
+            週
           </button>
         </div>
 
@@ -154,7 +154,7 @@ export default function CalendarView() {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrev}
-            aria-label={`Go to previous ${mode}`}
+            aria-label={`前の${mode === "month" ? "月" : "週"}へ`}
             className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -164,17 +164,17 @@ export default function CalendarView() {
           </h2>
           <button
             onClick={handleNext}
-            aria-label={`Go to next ${mode}`}
+            aria-label={`次の${mode === "month" ? "月" : "週"}へ`}
             className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
           <button
             onClick={handleToday}
-            aria-label="Jump to today"
+            aria-label="今日へ移動"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150 ml-1"
           >
-            Today
+            今日
           </button>
         </div>
       </div>
@@ -213,7 +213,7 @@ export default function CalendarView() {
                 key={day.toISOString()}
                 onClick={() => handleDateClick(day)}
                 role="button"
-                aria-label={`${format(day, "M月d日")} ${dayTasks.length > 0 ? `${dayTasks.length} tasks` : "no tasks"}`}
+                aria-label={`${format(day, "M月d日")} ${dayTasks.length > 0 ? `${dayTasks.length}件のタスク` : "タスクなし"}`}
                 className={cn(
                   "border-b border-r border-border/50 p-1.5 cursor-pointer transition-colors duration-150",
                   mode === "month" ? "min-h-[100px]" : "min-h-[200px]",
@@ -250,7 +250,7 @@ export default function CalendarView() {
                         e.stopPropagation();
                         handleTaskClick(task);
                       }}
-                      aria-label={`Open task: ${task.title}`}
+                      aria-label={`タスクを開く: ${task.title}`}
                       className="flex items-center gap-1 w-full px-1 py-0.5 rounded text-left hover:bg-secondary transition-colors duration-150 group/chip"
                     >
                       <span
@@ -267,7 +267,7 @@ export default function CalendarView() {
                   ))}
                   {dayTasks.length > (mode === "month" ? 3 : 8) && (
                     <span className="block text-[10px] font-heading text-muted-foreground pl-3">
-                      +{dayTasks.length - (mode === "month" ? 3 : 8)} more
+                      他{dayTasks.length - (mode === "month" ? 3 : 8)}件
                     </span>
                   )}
                 </div>
@@ -285,7 +285,7 @@ export default function CalendarView() {
           </h3>
           {selectedDateTasks.length === 0 ? (
             <p className="text-xs text-muted-foreground font-heading">
-              No tasks for this date
+              この日のタスクはありません
             </p>
           ) : (
             <div className="space-y-1.5">
@@ -293,7 +293,7 @@ export default function CalendarView() {
                 <button
                   key={task.id}
                   onClick={() => handleTaskClick(task)}
-                  aria-label={`Open task: ${task.title}, ${task.progress}% complete`}
+                  aria-label={`タスクを開く: ${task.title}、進捗${task.progress}%`}
                   className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-secondary transition-colors duration-150 text-left"
                 >
                   <span

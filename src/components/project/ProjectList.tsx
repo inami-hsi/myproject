@@ -34,11 +34,11 @@ export function ProjectList({ projects }: ProjectListProps) {
               <div className="flex items-center gap-2 pt-1">
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <FolderOpen className="h-3 w-3" />
-                  {project._count?.tasks ?? 0} tasks
+                  {project._count?.tasks ?? 0}件
                 </Badge>
                 {project.archived && (
                   <Badge variant="outline" className="text-xs">
-                    Archived
+                    アーカイブ済み
                   </Badge>
                 )}
               </div>

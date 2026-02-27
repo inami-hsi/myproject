@@ -48,7 +48,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <div className="px-3 py-4">
-        <Link href="/dashboard" onClick={handleClick} aria-label="Navigate to dashboard">
+        <Link href="/dashboard" onClick={handleClick} aria-label="ダッシュボードへ移動">
           <Button
             variant="ghost"
             className={cn(
@@ -57,7 +57,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             )}
           >
             <LayoutDashboard className="h-4 w-4" />
-            Dashboard
+            ダッシュボード
           </Button>
         </Link>
       </div>
@@ -67,10 +67,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       {/* Projects */}
       <div className="flex items-center justify-between px-4 py-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-heading">
-          Projects
+          プロジェクト
         </span>
-        <Link href="/dashboard" onClick={handleClick} aria-label="Create new project">
-          <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Create new project">
+        <Link href="/dashboard" onClick={handleClick} aria-label="新規プロジェクトを作成">
+          <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="新規プロジェクトを作成">
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </Link>
@@ -83,7 +83,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               key={project.id}
               href={`/dashboard/projects/${project.id}`}
               onClick={handleClick}
-              aria-label={`Open project: ${project.name}${project._count ? `, ${project._count.tasks} tasks` : ""}`}
+              aria-label={`プロジェクトを開く: ${project.name}${project._count ? `、${project._count.tasks}件のタスク` : ""}`}
             >
               <Button
                 variant="ghost"
@@ -108,7 +108,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
           {projects.length === 0 && (
             <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-              No projects yet
+              プロジェクトがありません
             </p>
           )}
         </div>
@@ -122,10 +122,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           variant="ghost"
           className="w-full justify-start gap-2 text-sm"
           onClick={handleClick}
-          aria-label="Open settings"
+          aria-label="設定を開く"
         >
           <Settings className="h-4 w-4" />
-          Settings
+          設定
         </Button>
       </div>
     </div>

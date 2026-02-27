@@ -47,7 +47,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Title is required");
+      setError("タイトルは必須です");
       return;
     }
 
@@ -80,7 +80,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
       onSuccess?.();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An error occurred"
+        err instanceof Error ? err.message : "エラーが発生しました"
       );
     } finally {
       setSaving(false);
@@ -91,35 +91,35 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
     <DialogContent className="sm:max-w-md">
       <form onSubmit={handleSubmit}>
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Task" : "Create Task"}</DialogTitle>
+          <DialogTitle>{isEditing ? "タスクを編集" : "タスクを作成"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update the task details below."
-              : "Fill in the details to create a new task."}
+              ? "タスクの詳細を更新してください。"
+              : "新しいタスクの詳細を入力してください。"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="task-title">Title</Label>
+            <Label htmlFor="task-title">タイトル</Label>
             <Input
               id="task-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter task title"
+              placeholder="タスクのタイトルを入力"
               autoFocus
             />
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="task-description">Description</Label>
+            <Label htmlFor="task-description">説明</Label>
             <Textarea
               id="task-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the task..."
+              placeholder="タスクの内容を入力..."
               rows={3}
             />
           </div>
@@ -127,7 +127,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
           {/* Status & Priority */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>ステータス</Label>
               <Select
                 value={status}
                 onValueChange={(v) => setStatus(v as TaskStatus)}
@@ -146,7 +146,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Priority</Label>
+              <Label>優先度</Label>
               <Select
                 value={priority}
                 onValueChange={(v) => setPriority(v as Priority)}
@@ -168,7 +168,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
           {/* Dates */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="task-start">Start</Label>
+              <Label htmlFor="task-start">開始</Label>
               <Input
                 id="task-start"
                 type="date"
@@ -177,7 +177,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="task-end">End</Label>
+              <Label htmlFor="task-end">終了</Label>
               <Input
                 id="task-end"
                 type="date"
@@ -186,7 +186,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="task-due">Due</Label>
+              <Label htmlFor="task-due">期限</Label>
               <Input
                 id="task-due"
                 type="date"
@@ -205,7 +205,7 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
         <DialogFooter className="mt-6">
           <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? "Save Changes" : "Create Task"}
+            {isEditing ? "変更を保存" : "タスクを作成"}
           </Button>
         </DialogFooter>
       </form>

@@ -44,16 +44,16 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-center text-sm text-muted-foreground">
-            Calm productivity for focused teams
+            集中するチームのための穏やかな生産性ツール
           </p>
         </div>
 
         {/* Login Card */}
         <Card className="border-border/50">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-xl">Welcome back</CardTitle>
+            <CardTitle className="text-xl">おかえりなさい</CardTitle>
             <CardDescription>
-              Sign in to continue to your workspace
+              ワークスペースにサインインしてください
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -69,7 +69,7 @@ export default function LoginPage() {
               ) : (
                 <CheckSquare className="mr-2 h-4 w-4" />
               )}
-              Demo user login
+              デモユーザーでログイン
             </Button>
 
             <div className="relative">
@@ -78,13 +78,13 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  CC-Auth integration coming soon
+                  CC-Auth連携は近日公開
                 </span>
               </div>
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
-              This is a demo environment. Data may be reset periodically.
+              これはデモ環境です。データは定期的にリセットされる場合があります。
             </p>
           </CardContent>
         </Card>

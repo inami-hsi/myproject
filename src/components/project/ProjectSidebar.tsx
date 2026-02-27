@@ -70,7 +70,7 @@ export function ProjectSidebar({ project, tasks }: ProjectSidebarProps) {
   if (!project) {
     return (
       <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-        No project selected
+        プロジェクトが選択されていません
       </div>
     );
   }
@@ -100,15 +100,15 @@ export function ProjectSidebar({ project, tasks }: ProjectSidebarProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-sm">Progress</CardTitle>
+            <CardTitle className="text-sm">進捗</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Completion</span>
+              <span className="text-muted-foreground">完了</span>
               <span className="font-medium tabular-nums">
-                {stats.completed}/{stats.total} tasks
+                {stats.completed}/{stats.total}件
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -126,7 +126,7 @@ export function ProjectSidebar({ project, tasks }: ProjectSidebarProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-sm">Status</CardTitle>
+            <CardTitle className="text-sm">ステータス</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -157,7 +157,7 @@ export function ProjectSidebar({ project, tasks }: ProjectSidebarProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <ListTodo className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-sm">Priority</CardTitle>
+            <CardTitle className="text-sm">優先度</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -189,7 +189,7 @@ export function ProjectSidebar({ project, tasks }: ProjectSidebarProps) {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-sm">Recent Activity</CardTitle>
+              <CardTitle className="text-sm">最近のアクティビティ</CardTitle>
             </div>
           </CardHeader>
           <CardContent>

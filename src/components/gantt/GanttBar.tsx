@@ -136,7 +136,7 @@ export default function GanttBar({
   return (
     <g
       role="button"
-      aria-label={`Task: ${task.title}, ${task.status}, ${task.progress}% complete. Drag to reschedule.`}
+      aria-label={`タスク: ${task.title}、${task.status}、進捗${task.progress}%。ドラッグでスケジュール変更。`}
       onMouseEnter={() => {
         setIsHovered(true);
         setShowTooltip(true);

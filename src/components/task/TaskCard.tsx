@@ -45,7 +45,7 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
       )}
       onClick={handleClick}
       role="button"
-      aria-label={`Open task: ${task.title}`}
+      aria-label={`タスクを開く: ${task.title}`}
     >
       <CardHeader className={cn("pb-2", compact && "p-3 pb-1")}>
         <div className="flex items-start justify-between gap-2">

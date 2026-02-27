@@ -101,7 +101,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
       {milestones.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
           <MilestoneIcon className="mb-2 h-8 w-8" />
-          <p className="text-sm">No milestones yet</p>
+          <p className="text-sm">マイルストーンがありません</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -126,7 +126,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={confirmDeleteId === milestone.id ? `Confirm delete milestone: ${milestone.name}` : `Delete milestone: ${milestone.name}`}
+                aria-label={confirmDeleteId === milestone.id ? `マイルストーンを削除確認: ${milestone.name}` : `マイルストーンを削除: ${milestone.name}`}
                 className={cn(
                   "h-7 w-7 shrink-0",
                   confirmDeleteId === milestone.id &&
@@ -152,7 +152,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Milestone name"
+            placeholder="マイルストーン名"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -168,13 +168,13 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
 
         {/* Color picker */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground shrink-0">Color:</span>
+          <span className="text-xs text-muted-foreground shrink-0">カラー:</span>
           <div className="flex flex-wrap gap-1.5">
             {MILESTONE_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={`Select color ${c}`}
+                aria-label={`カラーを選択: ${c}`}
                 className={cn(
                   "h-5 w-5 rounded-full border-2 transition-all duration-200",
                   color === c
@@ -199,7 +199,7 @@ export function MilestoneManager({ projectId }: MilestoneManagerProps) {
           ) : (
             <Plus className="h-3.5 w-3.5" />
           )}
-          Add Milestone
+          マイルストーンを追加
         </Button>
       </div>
     </div>

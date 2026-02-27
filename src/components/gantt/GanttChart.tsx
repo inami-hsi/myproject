@@ -37,9 +37,9 @@ const STATUS_DOT_COLORS: Record<string, string> = {
 };
 
 const TIME_SCALE_OPTIONS: { value: TimeScale; label: string; icon: React.ReactNode }[] = [
-  { value: "day", label: "Day", icon: <CalendarDays className="h-3.5 w-3.5" /> },
-  { value: "week", label: "Week", icon: <CalendarRange className="h-3.5 w-3.5" /> },
-  { value: "month", label: "Month", icon: <Calendar className="h-3.5 w-3.5" /> },
+  { value: "day", label: "日", icon: <CalendarDays className="h-3.5 w-3.5" /> },
+  { value: "week", label: "週", icon: <CalendarRange className="h-3.5 w-3.5" /> },
+  { value: "month", label: "月", icon: <Calendar className="h-3.5 w-3.5" /> },
 ];
 
 function isWeekend(date: Date): boolean {
@@ -189,7 +189,7 @@ export default function GanttChart({
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-heading font-medium text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors duration-150"
         >
           <ChevronsRight className="h-3.5 w-3.5" />
-          Today
+          今日
         </button>
       </div>
 
@@ -206,7 +206,7 @@ export default function GanttChart({
             style={{ height: HEADER_HEIGHT }}
           >
             <span className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-              Tasks
+              タスク
             </span>
           </div>
 
@@ -247,7 +247,7 @@ export default function GanttChart({
           {/* Empty state */}
           {tasks.length === 0 && milestones.length === 0 && (
             <div className="flex items-center justify-center py-12 text-sm text-muted-foreground font-heading">
-              No tasks to display
+              表示するタスクがありません
             </div>
           )}
         </div>

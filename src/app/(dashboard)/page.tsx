@@ -22,17 +22,17 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-heading tracking-tight">
-            Projects
+            プロジェクト
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manage your projects and tasks
+            プロジェクトとタスクを管理
           </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
               <Plus className="mr-2 h-4 w-4" />
-              New Project
+              新規プロジェクト
             </Button>
           </DialogTrigger>
           <ProjectForm onSuccess={() => setCreateOpen(false)} />
@@ -47,14 +47,14 @@ export default function DashboardPage() {
       ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <p className="mb-4 text-muted-foreground">
-            No projects yet. Create your first project to get started.
+            プロジェクトがまだありません。最初のプロジェクトを作成してください。
           </p>
           <Button
             onClick={() => setCreateOpen(true)}
             variant="outline"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Create Project
+            プロジェクトを作成
           </Button>
         </div>
       ) : (

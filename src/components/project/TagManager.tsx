@@ -95,7 +95,7 @@ export function TagManager({ projectId }: TagManagerProps) {
       {tags.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
           <TagIcon className="mb-2 h-8 w-8" />
-          <p className="text-sm">No tags yet</p>
+          <p className="text-sm">タグがありません</p>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export function TagManager({ projectId }: TagManagerProps) {
       {/* Add tag form */}
       <div className="space-y-3">
         <Input
-          placeholder="Tag name"
+          placeholder="タグ名"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -132,13 +132,13 @@ export function TagManager({ projectId }: TagManagerProps) {
 
         {/* Color picker */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground shrink-0">Color:</span>
+          <span className="text-xs text-muted-foreground shrink-0">カラー:</span>
           <div className="flex flex-wrap gap-1.5">
             {PRESET_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={`Select color ${c}`}
+                aria-label={`カラーを選択: ${c}`}
                 className={cn(
                   "h-5 w-5 rounded-full border-2 transition-all duration-200",
                   color === c
@@ -163,7 +163,7 @@ export function TagManager({ projectId }: TagManagerProps) {
           ) : (
             <Plus className="h-3.5 w-3.5" />
           )}
-          Add Tag
+          タグを追加
         </Button>
       </div>
     </div>

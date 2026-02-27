@@ -85,7 +85,7 @@ export default function KanbanColumn({
         {/* Empty state */}
         {tasks.length === 0 && (
           <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-heading">
-            No tasks
+            タスクなし
           </div>
         )}
       </div>
@@ -95,7 +95,7 @@ export default function KanbanColumn({
         <div className="px-2 pb-2">
           <button className="flex items-center gap-1.5 w-full px-3 py-2 rounded-md text-xs font-heading text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150">
             <Plus className="h-3.5 w-3.5" />
-            Add task
+            タスクを追加
           </button>
         </div>
       )}

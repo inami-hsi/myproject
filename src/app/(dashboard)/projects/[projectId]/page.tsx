@@ -55,10 +55,10 @@ const VIEW_ICONS: Record<ViewMode, React.ReactNode> = {
 };
 
 const VIEW_LABELS: Record<ViewMode, string> = {
-  gantt: "Gantt",
-  kanban: "Kanban",
-  calendar: "Calendar",
-  list: "List",
+  gantt: "ガント",
+  kanban: "カンバン",
+  calendar: "カレンダー",
+  list: "リスト",
 };
 
 export default function ProjectDetailPage() {
@@ -106,10 +106,10 @@ export default function ProjectDetailPage() {
             />
           )}
           <h1 className="text-2xl font-bold font-heading tracking-tight">
-            {currentProject?.name ?? "Project"}
+            {currentProject?.name ?? "プロジェクト"}
           </h1>
           <span className="text-sm text-muted-foreground">
-            {tasks.length} tasks
+            {tasks.length}件のタスク
           </span>
         </div>
 
@@ -120,7 +120,7 @@ export default function ProjectDetailPage() {
             onClick={() => setFiltersVisible(!filtersVisible)}
           >
             <SlidersHorizontal className="mr-2 h-4 w-4" />
-            Filters
+            フィルター
           </Button>
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -130,7 +130,7 @@ export default function ProjectDetailPage() {
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Task
+                タスクを追加
               </Button>
             </DialogTrigger>
             <TaskForm
@@ -202,7 +202,7 @@ export default function ProjectDetailPage() {
       >
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Task Details</SheetTitle>
+            <SheetTitle>タスク詳細</SheetTitle>
           </SheetHeader>
           {selectedTask && (
             <TaskDetail
