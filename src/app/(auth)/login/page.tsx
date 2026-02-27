@@ -23,7 +23,7 @@ export default function LoginPage() {
         method: "POST",
       });
       if (response.ok) {
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch {
       setLoading(false);

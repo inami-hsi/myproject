@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useUIStore } from "@/stores/uiStore";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,13 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const router = useRouter();
   const { searchQuery, setSearchQuery } = useUIStore();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4 lg:px-6">
@@ -73,7 +80,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               設定
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               ログアウト
             </DropdownMenuItem>

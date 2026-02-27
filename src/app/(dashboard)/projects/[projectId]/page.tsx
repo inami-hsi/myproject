@@ -180,6 +180,7 @@ export default function ProjectDetailPage() {
                   setSelectedTask(task);
                   setTaskDetailOpen(true);
                 }}
+                onAddTask={() => setCreateOpen(true)}
               />
             ))}
           </div>

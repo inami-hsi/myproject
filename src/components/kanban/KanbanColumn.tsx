@@ -15,6 +15,7 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  onAddTask?: () => void;
 }
 
 const COLUMN_HEADER_COLORS: Record<TaskStatus, string> = {
@@ -35,6 +36,7 @@ export default function KanbanColumn({
   status,
   tasks,
   onTaskClick,
+  onAddTask,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -91,9 +93,12 @@ export default function KanbanColumn({
       </div>
 
       {/* Add task button */}
-      {(status === "TODO" || status === "IN_PROGRESS") && (
+      {(status === "TODO" || status === "IN_PROGRESS") && onAddTask && (
         <div className="px-2 pb-2">
-          <button className="flex items-center gap-1.5 w-full px-3 py-2 rounded-md text-xs font-heading text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150">
+          <button
+            onClick={onAddTask}
+            className="flex items-center gap-1.5 w-full px-3 py-2 rounded-md text-xs font-heading text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150"
+          >
             <Plus className="h-3.5 w-3.5" />
             タスクを追加
           </button>

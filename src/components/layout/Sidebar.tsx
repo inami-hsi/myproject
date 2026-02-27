@@ -48,12 +48,12 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <div className="px-3 py-4">
-        <Link href="/dashboard" onClick={handleClick} aria-label="ダッシュボードへ移動">
+        <Link href="/" onClick={handleClick} aria-label="ダッシュボードへ移動">
           <Button
             variant="ghost"
             className={cn(
               "w-full justify-start gap-2",
-              pathname === "/dashboard" && "bg-secondary"
+              pathname === "/" && "bg-secondary"
             )}
           >
             <LayoutDashboard className="h-4 w-4" />
@@ -69,7 +69,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-heading">
           プロジェクト
         </span>
-        <Link href="/dashboard" onClick={handleClick} aria-label="新規プロジェクトを作成">
+        <Link href="/" onClick={handleClick} aria-label="新規プロジェクトを作成">
           <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="新規プロジェクトを作成">
             <Plus className="h-3.5 w-3.5" />
           </Button>
@@ -81,7 +81,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           {projects.map((project) => (
             <Link
               key={project.id}
-              href={`/dashboard/projects/${project.id}`}
+              href={`/projects/${project.id}`}
               onClick={handleClick}
               aria-label={`プロジェクトを開く: ${project.name}${project._count ? `、${project._count.tasks}件のタスク` : ""}`}
             >
