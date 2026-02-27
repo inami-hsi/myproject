@@ -21,7 +21,7 @@ external_dependencies:
 # ========================================
 github:
   repository: "my-project"
-  owner: "irohi2000"
+  owner: "inami-hsi"
   default_branch: "main"
   auto_label: true
   auto_assign: true
