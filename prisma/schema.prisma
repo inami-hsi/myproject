@@ -169,7 +169,6 @@ model ComplianceLog {
 }
 
 model QuestionnaireResponse {
-  id              String   @id @default(cuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   insuranceType   String   // auto, fire, liability
@@ -178,8 +177,14 @@ model QuestionnaireResponse {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
+  @@id([userId, insuranceType])
   @@index([userId])
-  @@index([insuranceType])
+}
+
+enum InsuranceType {
+  auto
+  fire
+  liability
 }
 
 model Recommendation {
