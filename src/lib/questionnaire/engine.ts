@@ -3,7 +3,6 @@ import { logComplianceAction } from "@/lib/auth";
 import type {
   Question,
   NextStep,
-  QuestionnaireResponse,
   ScoringInput,
 } from "@/types/questionnaire";
 
