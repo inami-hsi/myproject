@@ -135,7 +135,7 @@ export async function registerUser(
       userId: user.id,
       message: "登録が完了しました。確認メールをお送りしました",
     };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "登録処理中にエラーが発生しました",
@@ -179,7 +179,7 @@ export async function sendConfirmationEmail(
       status: "success",
       message: `確認メールを送信しました（有効期限: 30分）`,
     };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "メール送信に失敗しました",
@@ -231,7 +231,7 @@ export async function verifyConfirmationToken(
       userId: confirmation.userId,
       message: "メール確認が完了しました",
     };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "確認処理中にエラーが発生しました",
@@ -274,7 +274,7 @@ export async function updateUserProfile(
       status: "success",
       message: "プロフィールが更新されました",
     };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "更新処理中にエラーが発生しました",
@@ -302,7 +302,7 @@ export async function createSession(userId: string): Promise<string> {
     },
   });
   
-  return session.id;
+  return session.userId;
 }
 
 /**
@@ -328,7 +328,7 @@ export async function destroySession(userId: string): Promise<void> {
 export async function logComplianceAction(
   action: string,
   userId: string,
-  details: Record<string, any>
+  details: Record<string, unknown>
 ): Promise<void> {
   try {
     await prisma.complianceLog.create({
