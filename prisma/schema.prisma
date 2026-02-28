@@ -12,10 +12,34 @@ model User {
   email     String    @unique
   name      String?
   avatar    String?
-  cognitoId String    @unique
+  cognitoId String?   @unique
+  
+  // Insurance プロジェクト用フィールド
+  age       Int?
+  gender    String?   // M / F / OTHER
+  phone     String?
+  authMethod String?  // EMAIL / GOOGLE / LINE
+  emailVerified DateTime?
+  
+  // プロフィール情報
+  occupation String?  // 職業分類
+  childrenCount Int?  // 子ども人数
+  hasSpouse Boolean? @default(false) // 配偶者有無
+  prefecture String?  // 都道府県
+  hasExistingInsurance Boolean? @default(false) // 既存保険有無
+  
+  // リレーション（TaskFlow用）
   projects  Project[]
   tasks     Task[]    @relation("assignee")
   comments  Comment[]
+  
+  // リレーション（Insurance用）
+  sessions  Session[]
+  emailConfirmations EmailConfirmation[]
+  complianceLogs ComplianceLog[]
+  questionnaireResponses QuestionnaireResponse[]
+  recommendations Recommendation[]
+  
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -108,6 +132,71 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Insurance Project Models
+model EmailConfirmation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([token])
+  @@index([userId])
+}
+
+model Session {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ComplianceLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // user_registered, email_verified, profile_updated, etc.
+  details   Json?    // Additional context as JSON
+  timestamp DateTime @default(now())
+  
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model QuestionnaireResponse {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insuranceType   String   // auto, fire, liability
+  responses       Json     // Questionnaire responses as JSON
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([insuranceType])
+}
+
+model Recommendation {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insuranceType   String   // auto, fire, liability
+  ranking         Int      // 1, 2, 3, etc.
+  companyName     String   // Insurance company name
+  score           Float    // Matching score 0-100
+  reason          String?  // Recommendation reason text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([insuranceType])
+  @@unique([userId, insuranceType, ranking])
 }
 
 enum TaskStatus {
