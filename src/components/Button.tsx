@@ -11,18 +11,18 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props }, ref) => {
-    const baseClasses = 'font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2';
+    const baseClasses = 'font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2';
 
     const variantClasses = {
-      primary: 'bg-primary-500 hover:bg-primary-600 text-white disabled:bg-neutral-400',
-      secondary: 'bg-success-500 hover:bg-success-600 text-white disabled:bg-neutral-400',
-      ghost: 'bg-transparent hover:bg-neutral-100 text-neutral-900 disabled:text-neutral-400',
-      outline: 'border border-primary-500 text-primary-500 hover:bg-primary-50 disabled:border-neutral-400 disabled:text-neutral-400',
+      primary: 'bg-primary-500 hover:bg-primary-600 text-white disabled:bg-neutral-300 disabled:cursor-not-allowed focus:ring-primary-300',
+      secondary: 'bg-success-500 hover:bg-success-600 text-white disabled:bg-neutral-300 disabled:cursor-not-allowed focus:ring-success-300',
+      ghost: 'bg-transparent hover:bg-neutral-100 text-neutral-900 disabled:text-neutral-300 disabled:cursor-not-allowed focus:ring-primary-200',
+      outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 hover:border-primary-600 disabled:border-neutral-300 disabled:text-neutral-300 disabled:cursor-not-allowed focus:ring-primary-200',
     };
 
     const sizeClasses = {
       sm: 'px-3 py-2 text-sm',
-      md: 'px-4 py-3 text-base',
+      md: 'px-5 py-3 text-base',
       lg: 'px-6 py-4 text-lg',
     };
 

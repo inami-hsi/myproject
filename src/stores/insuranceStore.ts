@@ -9,10 +9,10 @@ interface InsuranceStore {
   currentCategory: InsuranceCategory | null;
   currentStep: number;
   
-  // User answers
-  answers: Record<number, string | string[]>;
+  // User answers grouped by category
+  answers: Record<InsuranceCategory, Record<number, string | string[]>>;
   
-  // Results
+  // Results for current category
   recommendations: Recommendation[];
   showResults: boolean;
   
@@ -25,7 +25,7 @@ interface InsuranceStore {
   setRecommendations: (recommendations: Recommendation[]) => void;
   showResultsPage: (show: boolean) => void;
   
-  // Reset
+  // Reset entire flow
   reset: () => void;
 }
 
@@ -34,15 +34,38 @@ export const useInsuranceStore = create<InsuranceStore>()(
     (set, get) => ({
       currentCategory: null,
       currentStep: 1,
-      answers: {},
+      answers: {
+        auto: {},
+        fire: {},
+        liability: {},
+        injury: {},
+        term: {},
+        whole: {},
+        medical: {},
+        cancer: {},
+        annuity: {},
+        variable: {},
+        endowment: {},
+        education: {},
+        income: {},
+        nursing: {},
+        disability: {},
+      },
       recommendations: [],
       showResults: false,
 
       setCategory: (category) =>
-        set({
-          currentCategory: category,
-          currentStep: 1,
-          answers: {},
+        set((state) => {
+          // Keep recommendations if switching to same category
+          if (state.currentCategory === category) {
+            return { currentCategory: category };
+          }
+          return {
+            currentCategory: category,
+            currentStep: 1,
+            recommendations: [],
+            showResults: false,
+          };
         }),
 
       setStep: (step) => set({ currentStep: step }),
@@ -58,12 +81,18 @@ export const useInsuranceStore = create<InsuranceStore>()(
         })),
 
       setAnswer: (step, answer) =>
-        set((state) => ({
-          answers: {
-            ...state.answers,
-            [step]: answer,
-          },
-        })),
+        set((state) => {
+          const cat = state.currentCategory as InsuranceCategory;
+          return {
+            answers: {
+              ...state.answers,
+              [cat]: {
+                ...state.answers[cat],
+                [step]: answer,
+              },
+            },
+          };
+        }),
 
       setRecommendations: (recommendations) =>
         set({ recommendations }),
@@ -74,7 +103,23 @@ export const useInsuranceStore = create<InsuranceStore>()(
         set({
           currentCategory: null,
           currentStep: 1,
-          answers: {},
+          answers: {
+            auto: {},
+            fire: {},
+            liability: {},
+            injury: {},
+            term: {},
+            whole: {},
+            medical: {},
+            cancer: {},
+            annuity: {},
+            variable: {},
+            endowment: {},
+            education: {},
+            income: {},
+            nursing: {},
+            disability: {},
+          },
           recommendations: [],
           showResults: false,
         }),

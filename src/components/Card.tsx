@@ -11,10 +11,10 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, title, description, variant = 'default', children, ...props }, ref) => {
-    const baseClasses = 'rounded-lg p-6';
+    const baseClasses = 'rounded-md p-6 transition-shadow duration-300';
     const variantClasses = {
-      default: 'bg-white border border-neutral-200',
-      elevated: 'bg-white shadow-lg',
+      default: 'bg-white border border-neutral-200 hover:border-neutral-300',
+      elevated: 'bg-white shadow-md hover:shadow-lg',
     };
 
     return (
@@ -23,8 +23,8 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         className={cn(baseClasses, variantClasses[variant], className)}
         {...props}
       >
-        {title && <h2 className="text-xl font-bold text-neutral-900 mb-2">{title}</h2>}
-        {description && <p className="text-neutral-600 mb-4">{description}</p>}
+        {title && <h2 className="text-lg font-bold text-primary-900 mb-2">{title}</h2>}
+        {description && <p className="text-neutral-600 text-sm mb-4">{description}</p>}
         {children}
       </div>
     );
@@ -50,7 +50,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
     return (
       <span
         ref={ref}
-        className={cn('inline-flex items-center px-3 py-1 rounded-full text-sm font-medium', variantClasses[variant], className)}
+        className={cn('inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold', variantClasses[variant], className)}
         {...props}
       >
         {children}
@@ -75,11 +75,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ current, total, classN
     <div className={cn('w-full', className)}>
       <div className="bg-neutral-200 rounded-full h-2 overflow-hidden">
         <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
+          className="bg-accent-500 h-full rounded-full transition-all duration-500"
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-sm text-neutral-600 mt-2 text-center">
+      <p className="text-xs text-neutral-600 mt-2 text-center font-medium">
         質問 {current} / {total}
       </p>
     </div>
