@@ -28,7 +28,8 @@ const categoryLabels: Record<InsuranceCategory, string> = {
 export async function generateComparisonReport(
   recommendations: Recommendation[],
   category: InsuranceCategory,
-  userAnswers: Record<number, string | string[]> = {}
+  userAnswers: Record<number, string | string[]> = {},
+  userName?: string
 ): Promise<void> {
   if (recommendations.length < 2) {
     throw new Error('比較には2社以上の推奨が必要です');
@@ -57,7 +58,8 @@ export async function generateComparisonReport(
     category,
     categoryLabel,
     axes,
-    dateStr
+    dateStr,
+    userName
   );
 
   // 新しいウィンドウでレポートを開いて印刷
@@ -82,7 +84,8 @@ function generateReportHtml(
   category: InsuranceCategory,
   categoryLabel: string,
   axes: Record<string, { label: string; weight: number }>,
-  dateStr: string
+  dateStr: string,
+  userName?: string
 ): string {
   const axisEntries = Object.entries(axes);
 
@@ -240,6 +243,7 @@ function generateReportHtml(
   <div class="header">
     <h1>${categoryLabel}比較レポート</h1>
     <p class="subtitle">あなたに最適な保険会社の比較結果</p>
+    ${userName ? `<p class="date">対象者: ${userName}</p>` : ''}
     <p class="date">作成日時: ${dateStr}</p>
   </div>
 
@@ -342,7 +346,8 @@ function generateReportHtml(
  */
 export function downloadTextReport(
   recommendations: Recommendation[],
-  category: InsuranceCategory
+  category: InsuranceCategory,
+  userName?: string
 ): void {
   if (recommendations.length < 2) {
     throw new Error('比較には2社以上の推奨が必要です');
@@ -358,7 +363,8 @@ export function downloadTextReport(
 ================================================================================
 ${categoryLabel}比較レポート
 ================================================================================
-作成日時: ${dateStr}
+${userName ? `対象者: ${userName}
+` : ''}作成日時: ${dateStr}
 
 【推奨会社】
 
@@ -421,7 +427,8 @@ ${'マッチ度'.padEnd(18)}${String(Math.round(first.matchScore) + '点').padEn
  */
 export function downloadCsvReport(
   recommendations: Recommendation[],
-  category: InsuranceCategory
+  category: InsuranceCategory,
+  userName?: string
 ): void {
   if (recommendations.length < 2) {
     throw new Error('比較には2社以上の推奨が必要です');
@@ -444,6 +451,7 @@ export function downloadCsvReport(
   // データ行
   const rows: string[][] = [
     ['保険種別', categoryLabel, categoryLabel],
+    ...(userName ? [['対象者', userName, userName]] : []),
     ['作成日時', dateStr, dateStr],
     ['商品名', first.productName, second.productName],
     ['マッチ度（点）', Math.round(first.matchScore).toString(), Math.round(second.matchScore).toString()],

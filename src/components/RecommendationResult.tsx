@@ -145,6 +145,7 @@ export const RecommendationResult: React.FC<RecommendationResultProps> = ({
   const [expandedCompany, setExpandedCompany] = useState<string | null>(
     recommendations[0]?.companyId || null
   );
+  const [userName, setUserName] = useState<string>('');
 
   return (
     <div className="space-y-6">
@@ -325,11 +326,22 @@ export const RecommendationResult: React.FC<RecommendationResultProps> = ({
       {/* レポート出力ボタン */}
       <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-neutral-50 rounded-lg border border-neutral-200">
         <h3 className="font-bold text-sm sm:text-base text-primary-900 mb-3 text-center">📄 比較レポート出力</h3>
+        <div className="mb-3">
+          <label htmlFor="userName" className="block text-xs sm:text-sm text-neutral-600 mb-1">対象者名（任意）</label>
+          <input
+            type="text"
+            id="userName"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="例: 山田太郎 様"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-center">
           <Button
             variant="primary"
             size="sm"
-            onClick={() => generateComparisonReport(recommendations, category as InsuranceCategory)}
+            onClick={() => generateComparisonReport(recommendations, category as InsuranceCategory, {}, userName || undefined)}
             className="w-full sm:w-auto"
           >
             🖨️ 印刷/PDF保存
@@ -337,7 +349,7 @@ export const RecommendationResult: React.FC<RecommendationResultProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadCsvReport(recommendations, category as InsuranceCategory)}
+            onClick={() => downloadCsvReport(recommendations, category as InsuranceCategory, userName || undefined)}
             className="w-full sm:w-auto"
           >
             📊 スプレッドシート用
@@ -345,7 +357,7 @@ export const RecommendationResult: React.FC<RecommendationResultProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadTextReport(recommendations, category as InsuranceCategory)}
+            onClick={() => downloadTextReport(recommendations, category as InsuranceCategory, userName || undefined)}
             className="w-full sm:w-auto"
           >
             📝 テキスト形式
