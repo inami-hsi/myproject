@@ -324,41 +324,50 @@ export const RecommendationResult: React.FC<RecommendationResultProps> = ({
       </div>
 
       {/* レポート出力ボタン */}
-      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-neutral-50 rounded-lg border border-neutral-200">
-        <h3 className="font-bold text-sm sm:text-base text-primary-900 mb-3 text-center">📄 比較レポート出力</h3>
-        <div className="mb-3">
-          <label htmlFor="userName" className="block text-xs sm:text-sm text-neutral-600 mb-1">対象者名（任意）</label>
+      <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-primary-50 rounded-lg border-2 border-primary-200">
+        <h3 className="font-bold text-base sm:text-lg text-primary-900 mb-4 text-center">📄 比較レポート出力</h3>
+        <div className="mb-4 p-3 sm:p-4 bg-white rounded-lg border border-primary-300">
+          <label htmlFor="userName" className="block text-sm sm:text-base font-bold text-primary-800 mb-2">
+            👤 対象者名 <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             id="userName"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             placeholder="例: 山田太郎 様"
-            className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-primary-50"
+            required
           />
+          {!userName && (
+            <p className="text-xs text-red-500 mt-1">※ レポート出力には対象者名の入力が必要です</p>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-center">
           <Button
             variant="primary"
             size="sm"
-            onClick={() => generateComparisonReport(recommendations, category as InsuranceCategory, {}, userName || undefined)}
+            onClick={() => generateComparisonReport(recommendations, category as InsuranceCategory, {}, userName)}
             className="w-full sm:w-auto"
+            disabled={!userName}
           >
             🖨️ 印刷/PDF保存
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadCsvReport(recommendations, category as InsuranceCategory, userName || undefined)}
+            onClick={() => downloadCsvReport(recommendations, category as InsuranceCategory, userName)}
             className="w-full sm:w-auto"
+            disabled={!userName}
           >
             📊 スプレッドシート用
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadTextReport(recommendations, category as InsuranceCategory, userName || undefined)}
+            onClick={() => downloadTextReport(recommendations, category as InsuranceCategory, userName)}
             className="w-full sm:w-auto"
+            disabled={!userName}
           >
             📝 テキスト形式
           </Button>
