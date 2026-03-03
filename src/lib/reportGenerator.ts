@@ -322,7 +322,6 @@ function generateReportHtml(
   <div class="footer">
     <p>本レポートは保険選びの参考情報として提供されています。</p>
     <p>実際のご契約前には、各保険会社の約款・重要事項説明書をご確認ください。</p>
-    <p style="margin-top: 10px;">保険比較サービス © ${new Date().getFullYear()}</p>
   </div>
 
   <div class="no-print" style="text-align: center; margin-top: 20px;">
