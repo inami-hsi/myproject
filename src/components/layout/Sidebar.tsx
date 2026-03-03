@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   CheckSquare,
-  FolderOpen,
   Plus,
   Settings,
   LayoutDashboard,

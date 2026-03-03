@@ -18,13 +18,6 @@ interface KanbanColumnProps {
   onAddTask?: () => void;
 }
 
-const COLUMN_HEADER_COLORS: Record<TaskStatus, string> = {
-  TODO: "bg-gray-200",
-  IN_PROGRESS: "bg-terracotta/20",
-  DONE: "bg-sage/20",
-  ON_HOLD: "bg-warning/20",
-};
-
 const COLUMN_ACCENT_COLORS: Record<TaskStatus, string> = {
   TODO: "#d1d5db",
   IN_PROGRESS: "#e07a5f",

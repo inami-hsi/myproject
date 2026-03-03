@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getQuestionByStep, getNextStep } from "@/lib/questionnaire/engine";
+import { getQuestionByStep, getNextStep } from "@/lib/questionnaire/engine-client";
 import StepProgress from "@/components/questionnaire/StepProgress";
 import QuestionDisplay from "@/components/questionnaire/QuestionDisplay";
 import QuestionnaireNavigation from "@/components/questionnaire/QuestionnaireNavigation";
@@ -105,8 +105,9 @@ export default function AutoInsuranceQuestionnaire() {
 
   // 次へボタンの有効化判定
   const currentQuestion = getQuestionByStep(INSURANCE_TYPE, currentStep);
-  const hasCurrentAnswer =
-    currentQuestion && responses[currentQuestion.id] !== undefined;
+  const hasCurrentAnswer = !!(
+    currentQuestion && responses[currentQuestion.id] !== undefined
+  );
   const canGoNext = hasCurrentAnswer && currentStep < TOTAL_STEPS;
   const canGoPrevious = currentStep > 1;
 

@@ -268,7 +268,7 @@ export async function updateUserProfile(
     });
     
     // ロ方式ログ
-    await logComplianceAction("profile_updated", userId, data);
+    await logComplianceAction("profile_updated", userId, data as Record<string, unknown>);
     
     return {
       status: "success",
@@ -335,7 +335,7 @@ export async function logComplianceAction(
       data: {
         userId,
         action,
-        details,
+        details: details as object,
         timestamp: new Date(),
       },
     });

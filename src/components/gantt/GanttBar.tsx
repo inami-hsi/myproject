@@ -54,12 +54,9 @@ export default function GanttBar({
   const dragStartRef = useRef<number>(0);
   const actionRef = useRef<"drag" | "resize" | null>(null);
 
-  if (width <= 0) return null;
-
   const barY = y + BAR_PADDING_Y;
   const barColor = STATUS_BAR_COLORS[task.status];
   const fillColor = STATUS_BAR_FILL_COLORS[task.status];
-  const progressWidth = (width * task.progress) / 100;
   const showText = width > 60;
 
   const currentX = isDragging ? x + dragOffset : x;
@@ -123,15 +120,7 @@ export default function GanttBar({
     [width, dayWidth, onClick, onDragEnd, onResizeEnd]
   );
 
-  const tooltipText = [
-    task.title,
-    task.startDate && task.endDate
-      ? `${task.startDate} ~ ${task.endDate}`
-      : "",
-    `${task.progress}%`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  if (width <= 0) return null;
 
   return (
     <g

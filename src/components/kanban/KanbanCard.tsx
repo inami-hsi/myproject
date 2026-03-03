@@ -22,13 +22,6 @@ function formatShortDate(dateStr: string): string {
   return date.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
 }
 
-const PRIORITY_DOT_COLORS: Record<string, string> = {
-  CRITICAL: "#c44e4e",
-  HIGH: "#e07a5f",
-  MEDIUM: "#d4a843",
-  LOW: "#9ca3af",
-};
-
 export default function KanbanCard({ task, onClick }: KanbanCardProps) {
   const {
     attributes,

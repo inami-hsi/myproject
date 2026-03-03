@@ -58,7 +58,7 @@ type EditingField =
   | "dueDate"
   | null;
 
-export function TaskDetail({ task, onClose }: TaskDetailProps) {
+export function TaskDetail({ task }: TaskDetailProps) {
   const { updateTask } = useTaskStore();
 
   // Inline editing state

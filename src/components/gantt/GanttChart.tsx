@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useState, useCallback } from "react";
 import type { Task, Milestone, TimeScale, TaskDependency } from "@/types";
-import { cn, addDays, STATUS_LABELS, formatDate } from "@/lib/utils";
+import { cn, addDays } from "@/lib/utils";
 import { useGantt } from "@/hooks/useGantt";
 import GanttTimeline from "./GanttTimeline";
 import GanttBar from "./GanttBar";
@@ -63,13 +63,11 @@ export default function GanttChart({
   const {
     timelineStart,
     timelineEnd,
-    dayWidth,
     totalWidth,
     totalHeight,
     taskBars,
     milestoneMarkers,
     todayX,
-    getXFromDate,
   } = useGantt(tasks, milestones, timeScale);
 
   const actualDayWidth = timeScale === "day" ? 40 : timeScale === "week" ? 60 / 7 : 80 / 30;
@@ -263,7 +261,6 @@ export default function GanttChart({
               startDate={timelineStart}
               endDate={timelineEnd}
               timeScale={timeScale}
-              dayWidth={actualDayWidth}
             />
           </div>
 
