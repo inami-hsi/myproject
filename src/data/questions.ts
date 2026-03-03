@@ -23,6 +23,11 @@ export const autoInsuranceQuestions: Question[] = [
         score: { 'accident-risk': 1, 'service-priority': 2 },
       },
       {
+        id: 'age-35-59',
+        label: '35～59歳',
+        score: { 'accident-risk': 0, 'service-priority': 3 },
+      },
+      {
         id: 'age-60+',
         label: '60歳以上',
         score: { 'accident-risk': 2, 'service-priority': 4 },
