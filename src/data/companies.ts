@@ -224,37 +224,6 @@ export const insuranceCompanies = {
       },
     },
     {
-      id: 'neofirst-life',
-      name: 'ネオファースト生命保険',
-      category: 'life',
-      url: 'https://neofirst.co.jp/',
-      // 商品強み:
-      // ・ネオdeシリーズ: コストパフォーマンス重視
-      // ・ネオde健康: 健康状態で最大30%割引
-      // ・WEB完結型申込み
-      scoring: {
-        'product-variety': 3, // ネオdeシリーズ中心
-        'claim-handling': 4,
-        'digital': 5, // WEB申込完結が強み
-        'counseling': 2, // 対面チャネル限定的
-        'cost': 5, // 業界最安水準の保険料
-        'reputation': 3, // 新興生保
-        'return-rate': 3,
-        'stability': 4, // 第一生命グループ
-        'flexibility': 4,
-        'maturity-benefit': 3,
-        'waiver-options': 4,
-        'benefit-amount': 3,
-        'coverage-period': 4,
-        'minimum-guarantee': 3,
-        'benefit-conditions': 4,
-        'mental-coverage': 4, // ネオdeからだエールで精神疾患対応
-        'waiting-period': 4,
-        'investment-options': 3, // 変額保険取扱なし（コスパ重視の会社評価は維持）
-        'performance': 3, // 変額保険取扱なし（コスパ重視の会社評価は維持）
-      },
-    },
-    {
       id: 'tmn-anshin',
       name: '東京海上日動あんしん生命保険',
       category: 'life',

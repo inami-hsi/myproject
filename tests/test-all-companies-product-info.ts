@@ -1,5 +1,5 @@
 /**
- * 全7社の商品固有情報が正しく表示されるかテスト
+ * 全6社の商品固有情報が正しく表示されるかテスト
  */
 import { calculateRecommendations } from '../src/lib/scoring';
 
@@ -27,10 +27,6 @@ const testCases: TestCase[] = [
   { category: 'variable', company: 'axa-life', keywords: ['ユニット・リンク'], description: 'ユニットリンク保険' },
   { category: 'disability', company: 'axa-life', keywords: ['精神疾患'], description: '就業不能保険' },
   
-  // ネオファースト生命
-  { category: 'medical', company: 'neofirst-life', keywords: ['ネオde健康'], description: 'ネオde健康' },
-  { category: 'term', company: 'neofirst-life', keywords: ['ネオde定期'], description: 'ネオde定期' },
-  
   // 東京海上日動あんしん生命
   { category: 'income', company: 'tmn-anshin', keywords: ['家計保障定期保険'], description: '家計保障定期保険NEO' },
   { category: 'nursing', company: 'tmn-anshin', keywords: ['あんしん介護'], description: 'あんしん介護' },
@@ -41,7 +37,7 @@ const testCases: TestCase[] = [
   { category: 'education', company: 'nippon-life', keywords: ['ニッセイ学資'], description: 'ニッセイ学資保険' },
 ];
 
-console.log('=== 全7社の商品固有情報テスト ===\n');
+console.log('=== 全6社の商品固有情報テスト ===\n');
 
 let passCount = 0;
 let failCount = 0;
