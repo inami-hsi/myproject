@@ -60,7 +60,8 @@ for (const [category, { steps, defaultAnswers }] of Object.entries(categoryMap))
     await page.goto(`${baseURL}/insurance/loss/${category}/questions/1`, { waitUntil: 'networkidle' });
     
     // ページがロードされるまで待機（クライアントサイドレンダリング対応）
-    await page.waitForSelector('input[type="radio"], input[type="checkbox"]', { timeout: 10000 });
+    // 選択肢ボタンがレンダリングされるまで待機
+    await page.waitForSelector('button[type="button"]', { timeout: 10000 });
 
     // 各ステップを順番に進める
     for (let step = 1; step <= steps; step++) {
@@ -69,33 +70,19 @@ for (const [category, { steps, defaultAnswers }] of Object.entries(categoryMap))
       // 該当するQ番号ページにいることを確認（URLが正しくなるまで待機）
       await page.waitForURL(`**/${category}/questions/${step}`, { timeout: 10000 });
 
-      // input要素がレンダリングされるまで待機
-      await page.waitForSelector('input[type="radio"], input[type="checkbox"]', { timeout: 10000 }).catch(() => {});
+      // 選択肢ボタンがレンダリングされるまで待機
+      await page.waitForSelector('button[type="button"]', { timeout: 10000 }).catch(() => {});
 
-      // radio/checkbox/select を見つけてクリック
-      const radioByValue = page.locator(`input[type="radio"][value="${answer}"]`);
-      const checkboxByValue = page.locator(`input[type="checkbox"][value="${answer}"]`);
-      const radioButtons = page.locator('input[type="radio"]');
-      const checkboxButtons = page.locator('input[type="checkbox"]');
-
-      if ((await radioByValue.count()) > 0) {
-        await radioByValue.first().click({ force: true });
-      } else if ((await checkboxByValue.count()) > 0) {
-        await checkboxByValue.first().click({ force: true });
-      } else if ((await radioButtons.count()) > 0) {
-        await radioButtons.first().click({ force: true });
-      } else if ((await checkboxButtons.count()) > 0) {
-        await checkboxButtons.first().click({ force: true });
+      // 選択肢ボタンをクリック（最初のオプションを選択）
+      const optionButtons = page.locator('button[type="button"]').filter({ hasText: /.+/ });
+      if ((await optionButtons.count()) > 0) {
+        // 最初の選択肢ボタンをクリック
+        await optionButtons.first().click();
       } else {
-        const selectElem = page.locator('select');
-        if ((await selectElem.count()) > 0) {
-          await selectElem.first().selectOption(answer as string);
-        } else {
-          // デバッグ情報を出力
-          console.log(`Step ${step}: No input found. URL: ${page.url()}`);
-          console.log('Page HTML snippet:', (await page.content()).substring(0, 2000));
-          throw new Error(`No input element found for step ${step}, answer="${answer}"`);
-        }
+        // デバッグ情報を出力
+        console.log(`Step ${step}: No option buttons found. URL: ${page.url()}`);
+        console.log('Page HTML snippet:', (await page.content()).substring(0, 2000));
+        throw new Error(`No option button found for step ${step}`);
       }
 
       // Next button - より柔軟なセレクタ
