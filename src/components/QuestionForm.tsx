@@ -80,7 +80,10 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
         )}
 
         {/* オプション */}
-        <div className={cn('space-y-3', isMultiSelect && 'space-y-3')}>
+        <div className={cn(
+          'grid gap-3',
+          question.options.length <= 3 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+        )}>
           {question.options.map((option) => {
             const isSelected =
               isSingleSelect
@@ -90,28 +93,27 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
                   : false;
 
             return (
-              <label
+              <button
                 key={option.id}
+                type="button"
+                onClick={() => handleOptionChange(option.id)}
                 className={cn(
-                  'flex items-start p-3 sm:p-5 rounded-md border-2 cursor-pointer transition-all duration-200',
+                  'relative flex items-center justify-center p-4 sm:p-5 rounded-lg border-2 cursor-pointer transition-all duration-200 text-center min-h-[60px]',
                   isSelected
-                    ? 'border-accent-500 bg-accent-50 shadow-sm'
-                    : 'border-neutral-200 bg-white hover:border-accent-300 hover:shadow-sm'
+                    ? 'border-accent-500 bg-accent-500 text-white shadow-md scale-[1.02]'
+                    : 'border-neutral-200 bg-white hover:border-accent-300 hover:bg-accent-50 text-neutral-900'
                 )}
               >
-                <input
-                  type={isSingleSelect ? 'radio' : 'checkbox'}
-                  name={`option-${question.step}`}
-                  value={option.id}
-                  checked={isSelected}
-                  onChange={() => handleOptionChange(option.id)}
-                  className="mt-1 mr-3 sm:mr-4 w-5 h-5 cursor-pointer accent-accent-500 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm sm:text-base text-neutral-900 break-words">{option.label}</p>
-                </div>
-                {isSelected && <Badge variant="success" className="hidden sm:inline-flex">✓ 選択中</Badge>}
-              </label>
+                <span className={cn(
+                  'font-semibold text-sm sm:text-base',
+                  isSelected && 'text-white'
+                )}>
+                  {option.label}
+                </span>
+                {isSelected && (
+                  <span className="absolute top-2 right-2 text-white text-lg">✓</span>
+                )}
+              </button>
             );
           })}
         </div>
