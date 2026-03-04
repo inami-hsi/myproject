@@ -44,6 +44,12 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // 日付を ISO datetime形式に変換するヘルパー
+  const toISODateTime = (dateStr: string): string | undefined => {
+    if (!dateStr) return undefined;
+    return new Date(dateStr).toISOString();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -61,9 +67,9 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
           description: description.trim() || undefined,
           status,
           priority,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          dueDate: dueDate || undefined,
+          startDate: toISODateTime(startDate),
+          endDate: toISODateTime(endDate),
+          dueDate: toISODateTime(dueDate),
         });
       } else {
         await createTask({
@@ -71,9 +77,9 @@ export function TaskForm({ projectId, task, onSuccess }: TaskFormProps) {
           description: description.trim() || undefined,
           status,
           priority,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          dueDate: dueDate || undefined,
+          startDate: toISODateTime(startDate),
+          endDate: toISODateTime(endDate),
+          dueDate: toISODateTime(dueDate),
           projectId,
         });
       }
