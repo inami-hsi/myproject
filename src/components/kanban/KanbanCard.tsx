@@ -10,6 +10,7 @@ import { Clock, AlertTriangle } from "lucide-react";
 interface KanbanCardProps {
   task: Task;
   onClick: () => void;
+  isDragging?: boolean;
 }
 
 function isOverdue(dueDate: string | null): boolean {
@@ -22,15 +23,17 @@ function formatShortDate(dateStr: string): string {
   return date.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
 }
 
-export default function KanbanCard({ task, onClick }: KanbanCardProps) {
+export default function KanbanCard({ task, onClick, isDragging: isDraggingProp }: KanbanCardProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging,
+    isDragging: isDraggingSortable,
   } = useSortable({ id: task.id });
+
+  const isDragging = isDraggingProp ?? isDraggingSortable;
 
   const style = {
     transform: CSS.Transform.toString(transform),

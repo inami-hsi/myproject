@@ -32,8 +32,8 @@ const GanttView = dynamic(
   { ssr: false }
 );
 
-const KanbanView = dynamic(
-  () => import("@/components/kanban/KanbanColumn"),
+const KanbanBoard = dynamic(
+  () => import("@/components/kanban/KanbanBoard"),
   { ssr: false }
 );
 
@@ -170,20 +170,17 @@ export default function ProjectDetailPage() {
           />
         </TabsContent>
         <TabsContent value="kanban">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {(["TODO", "IN_PROGRESS", "DONE", "ON_HOLD"] as const).map((status) => (
-              <KanbanView
-                key={status}
-                status={status}
-                tasks={tasks.filter((t) => t.status === status)}
-                onTaskClick={(task) => {
-                  setSelectedTask(task);
-                  setTaskDetailOpen(true);
-                }}
-                onAddTask={() => setCreateOpen(true)}
-              />
-            ))}
-          </div>
+          <KanbanBoard
+            tasks={tasks}
+            onTaskClick={(task) => {
+              setSelectedTask(task);
+              setTaskDetailOpen(true);
+            }}
+            onTaskStatusChange={async (taskId, newStatus) => {
+              await updateTask(taskId, { status: newStatus });
+            }}
+            onAddTask={() => setCreateOpen(true)}
+          />
         </TabsContent>
         <TabsContent value="calendar">
           <CalendarView />
