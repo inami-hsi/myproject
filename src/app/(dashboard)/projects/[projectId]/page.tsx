@@ -10,6 +10,7 @@ import { TaskDetail } from "@/components/task/TaskDetail";
 import { TaskFilters } from "@/components/task/TaskFilters";
 import { TaskForm } from "@/components/task/TaskForm";
 import { ProjectSidebar } from "@/components/project/ProjectSidebar";
+import { useMilestones } from "@/hooks/useMilestones";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -25,52 +26,24 @@ import {
 } from "lucide-react";
 import type { ViewMode } from "@/types";
 
-// Lazy-loaded view components (will be created by view component task)
-const GanttViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function GanttView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Gantt view - Component pending
-        </div>
-      );
-    }),
+// Lazy-loaded view components
+const GanttView = dynamic(
+  () => import("@/components/gantt/GanttChart"),
   { ssr: false }
 );
 
-const KanbanViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function KanbanView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Kanban view - Component pending
-        </div>
-      );
-    }),
+const KanbanBoard = dynamic(
+  () => import("@/components/kanban/KanbanBoard"),
   { ssr: false }
 );
 
-const CalendarViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function CalendarView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          Calendar view - Component pending
-        </div>
-      );
-    }),
+const CalendarView = dynamic(
+  () => import("@/components/calendar/CalendarView"),
   { ssr: false }
 );
 
-const ListViewPlaceholder = dynamic(
-  () =>
-    Promise.resolve(function ListView() {
-      return (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-24 text-muted-foreground">
-          List view - Component pending
-        </div>
-      );
-    }),
+const ListView = dynamic(
+  () => import("@/components/list/ListView"),
   { ssr: false }
 );
 
@@ -82,10 +55,10 @@ const VIEW_ICONS: Record<ViewMode, React.ReactNode> = {
 };
 
 const VIEW_LABELS: Record<ViewMode, string> = {
-  gantt: "Gantt",
-  kanban: "Kanban",
-  calendar: "Calendar",
-  list: "List",
+  gantt: "ガント",
+  kanban: "カンバン",
+  calendar: "カレンダー",
+  list: "リスト",
 };
 
 export default function ProjectDetailPage() {
@@ -94,10 +67,11 @@ export default function ProjectDetailPage() {
 
   const { currentProject, fetchProject, loading: projectLoading } =
     useProjectStore();
-  const { tasks, selectedTask, fetchTasks, setSelectedTask, loading: taskLoading } =
+  const { tasks, selectedTask, fetchTasks, setSelectedTask, updateTask, loading: taskLoading } =
     useTaskStore();
   const { viewMode, setViewMode, taskDetailOpen, setTaskDetailOpen } =
     useUIStore();
+  const { milestones, fetchMilestones } = useMilestones(projectId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -106,8 +80,9 @@ export default function ProjectDetailPage() {
     if (projectId) {
       fetchProject(projectId);
       fetchTasks(projectId);
+      fetchMilestones();
     }
-  }, [projectId, fetchProject, fetchTasks]);
+  }, [projectId, fetchProject, fetchTasks, fetchMilestones]);
 
   const loading = projectLoading || taskLoading;
 
@@ -131,10 +106,10 @@ export default function ProjectDetailPage() {
             />
           )}
           <h1 className="text-2xl font-bold font-heading tracking-tight">
-            {currentProject?.name ?? "Project"}
+            {currentProject?.name ?? "プロジェクト"}
           </h1>
           <span className="text-sm text-muted-foreground">
-            {tasks.length} tasks
+            {tasks.length}件のタスク
           </span>
         </div>
 
@@ -145,7 +120,7 @@ export default function ProjectDetailPage() {
             onClick={() => setFiltersVisible(!filtersVisible)}
           >
             <SlidersHorizontal className="mr-2 h-4 w-4" />
-            Filters
+            フィルター
           </Button>
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -155,7 +130,7 @@ export default function ProjectDetailPage() {
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Task
+                タスクを追加
               </Button>
             </DialogTrigger>
             <TaskForm
@@ -184,16 +159,34 @@ export default function ProjectDetailPage() {
         </TabsList>
 
         <TabsContent value="gantt">
-          <GanttViewPlaceholder />
+          <GanttView
+            tasks={tasks}
+            milestones={milestones}
+            onTaskClick={(task) => {
+              setSelectedTask(task);
+              setTaskDetailOpen(true);
+            }}
+            onTaskUpdate={(id, updates) => updateTask(id, updates)}
+          />
         </TabsContent>
         <TabsContent value="kanban">
-          <KanbanViewPlaceholder />
+          <KanbanBoard
+            tasks={tasks}
+            onTaskClick={(task) => {
+              setSelectedTask(task);
+              setTaskDetailOpen(true);
+            }}
+            onTaskStatusChange={async (taskId, newStatus) => {
+              await updateTask(taskId, { status: newStatus });
+            }}
+            onAddTask={() => setCreateOpen(true)}
+          />
         </TabsContent>
         <TabsContent value="calendar">
-          <CalendarViewPlaceholder />
+          <CalendarView />
         </TabsContent>
         <TabsContent value="list">
-          <ListViewPlaceholder />
+          <ListView />
         </TabsContent>
       </Tabs>
 
@@ -207,7 +200,7 @@ export default function ProjectDetailPage() {
       >
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Task Details</SheetTitle>
+            <SheetTitle>タスク詳細</SheetTitle>
           </SheetHeader>
           {selectedTask && (
             <TaskDetail

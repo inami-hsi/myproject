@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useUIStore } from "@/stores/uiStore";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,13 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const router = useRouter();
   const { searchQuery, setSearchQuery } = useUIStore();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4 lg:px-6">
@@ -28,7 +35,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         size="icon"
         className="lg:hidden"
         onClick={onMenuClick}
-        aria-label="Open navigation menu"
+        aria-label="ナビゲーションメニューを開く"
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -39,7 +46,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search tasks..."
+            placeholder="タスクを検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -56,7 +63,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="User menu"
+              aria-label="ユーザーメニュー"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-foreground">
                 <User className="h-4 w-4" />
@@ -66,16 +73,16 @@ export function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              プロフィール
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              設定
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              ログアウト
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

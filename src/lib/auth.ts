@@ -1,24 +1,60 @@
-import { cookies } from "next/headers";
-import { prisma } from "./prisma";
+import { auth, currentUser } from '@clerk/nextjs/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  if (!userId) return null;
-  return prisma.user.findUnique({ where: { id: userId } });
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('users')
+    .select('*')
+    .eq('clerk_user_id', userId)
+    .single()
+
+  return data
+}
+
+export async function requireUser() {
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Unauthorized')
+  return user
+}
+
+export async function getClerkProfile() {
+  const user = await currentUser()
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.emailAddresses[0]?.emailAddress,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    imageUrl: user.imageUrl,
+  }
+}
+
+// Legacy TaskFlow compatibility stubs
+export interface UserProfileData {
+  age?: number
+  gender?: string
+  phone?: string
+  occupation?: string
+  children?: number
+  spouse?: boolean
+  prefecture?: string
+  existingInsurance?: boolean
 }
 
 export async function getOrCreateDemoUser() {
-  const email = "demo@taskflow.local";
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email,
-        name: "Demo User",
-        cognitoId: "demo-cognito-id",
-      },
-    });
-  }
-  return user;
+  return getCurrentUser()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function updateUserProfile(userId: string, data: UserProfileData) {
+  // No-op: profile fields moved to Clerk metadata
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function logComplianceAction(action: string, userId: string, details?: Record<string, unknown>) {
+  // No-op: compliance logging not yet implemented with Clerk
 }

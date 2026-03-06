@@ -12,6 +12,9 @@ const createProjectSchema = z.object({
 export async function GET() {
   try {
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const projects = await prisma.project.findMany({
       where: { userId: user.id },
       include: {
@@ -32,6 +35,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = createProjectSchema.safeParse(body);
 

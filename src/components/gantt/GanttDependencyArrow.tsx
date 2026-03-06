@@ -64,7 +64,6 @@ function buildPath(
       endY = to.y + barMidY;
   }
 
-  const midX = startX + (endX - startX) / 2;
   const offsetX = 12;
 
   // Route with right-angle connectors

@@ -1,0 +1,35 @@
+name: NTA Monthly Sync (JOB-002)
+
+on:
+  schedule:
+    # 毎月2日 JST 03:00 (UTC 18:00 前日)
+    - cron: '0 18 1 * *'
+  workflow_dispatch:
+    inputs:
+      prefecture:
+        description: 'Prefecture code (01-47, empty for all)'
+        required: false
+        type: string
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run NTA import
+        run: npx tsx scripts/import-nta.ts ${{ github.event.inputs.prefecture && format('--prefecture {0}', github.event.inputs.prefecture) || '' }}

@@ -10,6 +10,7 @@ import { Clock, AlertTriangle } from "lucide-react";
 interface KanbanCardProps {
   task: Task;
   onClick: () => void;
+  isDragging?: boolean;
 }
 
 function isOverdue(dueDate: string | null): boolean {
@@ -22,22 +23,17 @@ function formatShortDate(dateStr: string): string {
   return date.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
 }
 
-const PRIORITY_DOT_COLORS: Record<string, string> = {
-  CRITICAL: "#c44e4e",
-  HIGH: "#e07a5f",
-  MEDIUM: "#d4a843",
-  LOW: "#9ca3af",
-};
-
-export default function KanbanCard({ task, onClick }: KanbanCardProps) {
+export default function KanbanCard({ task, onClick, isDragging: isDraggingProp }: KanbanCardProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging,
+    isDragging: isDraggingSortable,
   } = useSortable({ id: task.id });
+
+  const isDragging = isDraggingProp ?? isDraggingSortable;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -54,6 +50,8 @@ export default function KanbanCard({ task, onClick }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
+      aria-label={`タスク: ${task.title}、優先度${PRIORITY_LABELS[task.priority]}。ドラッグで並べ替え。`}
+      role="button"
       className={cn(
         "group rounded-lg border border-border bg-card p-3 cursor-pointer",
         "hover:border-primary/30 hover:shadow-sm",

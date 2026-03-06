@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDemoUser } from "@/lib/auth";
 
 const taskStatusEnum = z.enum(["TODO", "IN_PROGRESS", "DONE", "ON_HOLD"]);
 const priorityEnum = z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW"]);

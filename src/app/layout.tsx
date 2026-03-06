@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Calm productivity task management with Gantt, Kanban, Calendar, and List views.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.svg",
   },
 };
 

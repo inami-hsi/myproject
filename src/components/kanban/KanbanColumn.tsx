@@ -15,14 +15,8 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  onAddTask?: () => void;
 }
-
-const COLUMN_HEADER_COLORS: Record<TaskStatus, string> = {
-  TODO: "bg-gray-200",
-  IN_PROGRESS: "bg-terracotta/20",
-  DONE: "bg-sage/20",
-  ON_HOLD: "bg-warning/20",
-};
 
 const COLUMN_ACCENT_COLORS: Record<TaskStatus, string> = {
   TODO: "#d1d5db",
@@ -35,6 +29,7 @@ export default function KanbanColumn({
   status,
   tasks,
   onTaskClick,
+  onAddTask,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -85,17 +80,20 @@ export default function KanbanColumn({
         {/* Empty state */}
         {tasks.length === 0 && (
           <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-heading">
-            No tasks
+            タスクなし
           </div>
         )}
       </div>
 
       {/* Add task button */}
-      {(status === "TODO" || status === "IN_PROGRESS") && (
+      {(status === "TODO" || status === "IN_PROGRESS") && onAddTask && (
         <div className="px-2 pb-2">
-          <button className="flex items-center gap-1.5 w-full px-3 py-2 rounded-md text-xs font-heading text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150">
+          <button
+            onClick={onAddTask}
+            className="flex items-center gap-1.5 w-full px-3 py-2 rounded-md text-xs font-heading text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150"
+          >
             <Plus className="h-3.5 w-3.5" />
-            Add task
+            タスクを追加
           </button>
         </div>
       )}

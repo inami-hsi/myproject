@@ -8,7 +8,6 @@ interface GanttTimelineProps {
   startDate: Date;
   endDate: Date;
   timeScale: TimeScale;
-  dayWidth: number;
 }
 
 const HEADER_HEIGHT = 52;
@@ -45,7 +44,6 @@ export default function GanttTimeline({
   startDate,
   endDate,
   timeScale,
-  dayWidth,
 }: GanttTimelineProps) {
   const totalDays = daysBetween(startDate, endDate);
 
@@ -102,7 +100,6 @@ export default function GanttTimeline({
 
     if (timeScale === "week") {
       const weekWidth = 60;
-      const actualDayWidth = weekWidth / 7;
       let currentMonth = -1;
       let groupStart = 0;
       let groupLabel = "";
@@ -194,7 +191,7 @@ export default function GanttTimeline({
     }
 
     return { topGroups: groups, bottomCells: cells, totalWidth: tw };
-  }, [startDate, endDate, timeScale, totalDays, dayWidth]);
+  }, [startDate, endDate, timeScale, totalDays]);
 
   return (
     <svg width={totalWidth} height={HEADER_HEIGHT} className="select-none">
