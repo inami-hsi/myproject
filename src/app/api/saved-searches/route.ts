@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getPlanLimits } from '@/lib/plan-limits'
 import type { Json } from '@/types/database'
 
@@ -39,7 +39,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // Get internal user id
     const { data: user, error: userError } = await supabase
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // Get internal user + plan
     const { data: user, error: userError } = await supabase

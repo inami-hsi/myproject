@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // GET /api/download/{id}
@@ -18,7 +18,7 @@ export async function GET(
 
     const { id } = await params
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // Get the user
     const { data: user, error: userError } = await supabase

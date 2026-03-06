@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ const updateSavedSearchSchema = z.object({
 // ---------------------------------------------------------------------------
 
 async function getInternalUserId(clerkUserId: string) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServiceRoleClient()
   const { data: user, error } = await supabase
     .from('users')
     .select('id')

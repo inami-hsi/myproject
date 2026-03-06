@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { canDownload, getRemainingDownloads, getPlanLimits } from '@/lib/plan-limits'
 import { rateLimit } from '@/lib/rate-limit'
 import type { Json } from '@/types/database'
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const { search_params: searchParams, columns } = parsed.data
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // ----- Get current user from users table -----
     const { data: user, error: userError } = await supabase
@@ -253,13 +253,34 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function countMatchingRecords(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  supabase: ReturnType<typeof createServiceRoleClient>,
   searchParams: z.infer<typeof downloadSchema>['search_params'],
 ): Promise<number> {
+  // Pre-filter by industry
+  let industryCompanyIds: string[] | null = null
+  if (searchParams.industries && searchParams.industries.length > 0) {
+    const industryConditions = searchParams.industries
+      .map((code) => `jsic_code.like.${code}%`)
+      .join(',')
+
+    const { data: mappings } = await supabase
+      .from('company_industry_mapping')
+      .select('company_id')
+      .or(industryConditions)
+
+    industryCompanyIds = Array.from(
+      new Set((mappings ?? []).map((m) => m.company_id)),
+    )
+    if (industryCompanyIds.length === 0) return 0
+  }
+
   let query = supabase
     .from('companies')
     .select('id', { count: 'estimated', head: true })
 
+  if (industryCompanyIds) {
+    query = query.in('id', industryCompanyIds)
+  }
   if (searchParams.prefectures && searchParams.prefectures.length > 0) {
     query = query.in('prefecture_code', searchParams.prefectures)
   }
@@ -299,21 +320,34 @@ async function countMatchingRecords(
 // ---------------------------------------------------------------------------
 
 async function fetchAllRecords(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  supabase: ReturnType<typeof createServiceRoleClient>,
   searchParams: z.infer<typeof downloadSchema>['search_params'],
   columns: AllowedColumn[],
 ): Promise<Record<string, unknown>[]> {
   // Build Supabase select columns from the requested CSV columns
-  // Always include 'id' for industry post-filtering
   const selectCols = new Set<string>(columns)
   selectCols.add('id')
-  // prefecture_code is needed for prefecture filter but may not be in download columns
   if (searchParams.prefectures && searchParams.prefectures.length > 0) {
     selectCols.add('prefecture_code')
   }
 
-  const needsIndustryFilter =
-    searchParams.industries && searchParams.industries.length > 0
+  // Pre-filter by industry
+  let industryCompanyIds: string[] | null = null
+  if (searchParams.industries && searchParams.industries.length > 0) {
+    const industryConditions = searchParams.industries
+      .map((code) => `jsic_code.like.${code}%`)
+      .join(',')
+
+    const { data: mappings } = await supabase
+      .from('company_industry_mapping')
+      .select('company_id')
+      .or(industryConditions)
+
+    industryCompanyIds = Array.from(
+      new Set((mappings ?? []).map((m) => m.company_id)),
+    )
+    if (industryCompanyIds.length === 0) return []
+  }
 
   const PAGE_SIZE = 1000
   const allRows: Record<string, unknown>[] = []
@@ -325,7 +359,9 @@ async function fetchAllRecords(
       .from('companies')
       .select(Array.from(selectCols).join(','))
 
-    // Apply filters
+    if (industryCompanyIds) {
+      query = query.in('id', industryCompanyIds)
+    }
     if (searchParams.prefectures && searchParams.prefectures.length > 0) {
       query = query.in('prefecture_code', searchParams.prefectures)
     }
@@ -369,26 +405,8 @@ async function fetchAllRecords(
       break
     }
 
-    // Industry post-filter if needed
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let filtered = rows as any as Record<string, unknown>[]
-    if (needsIndustryFilter && filtered.length > 0) {
-      const companyIds = filtered.map((r) => r.id as string)
-      const industryConditions = searchParams.industries!
-        .map((code) => `jsic_code.like.${code}%`)
-        .join(',')
-
-      const { data: mappings } = await supabase
-        .from('company_industry_mapping')
-        .select('company_id')
-        .in('company_id', companyIds)
-        .or(industryConditions)
-
-      const matchingIds = new Set((mappings ?? []).map((m) => m.company_id))
-      filtered = filtered.filter((r) => matchingIds.has(r.id as string))
-    }
-
-    allRows.push(...filtered)
+    allRows.push(...(rows as any as Record<string, unknown>[]))
     offset += PAGE_SIZE
     hasMore = rows.length === PAGE_SIZE
   }
