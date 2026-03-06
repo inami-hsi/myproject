@@ -2,26 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
 
 const searchSchema = z.object({
-  industries: z.array(z.string()).optional(),
-  prefectures: z.array(z.string()).optional(),
-  cities: z.array(z.string()).optional(),
+  industries: z.array(z.string().max(10)).max(100).optional(),
+  prefectures: z.array(z.string().max(6)).max(47).optional(),
+  cities: z.array(z.string().max(10)).max(200).optional(),
   capital_min: z.number().nonnegative().optional(),
   capital_max: z.number().nonnegative().optional(),
   employee_min: z.number().int().nonnegative().optional(),
   employee_max: z.number().int().nonnegative().optional(),
-  keyword: z.string().optional(),
+  keyword: z.string().max(200).transform((s) => s.trim()).optional(),
   has_website: z.boolean().optional(),
   status: z.enum(['active', 'closed', 'merged']).optional(),
   sort_by: z.enum(['name', 'capital', 'employee_count', 'updated_at']).optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
   limit: z.number().int().min(1).max(100).optional(),
-  cursor: z.string().nullable().optional(),
+  cursor: z.string().max(500).nullable().optional(),
 })
 
 
@@ -54,6 +55,12 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 30 requests per minute per user
+    const rl = rateLimit(userId, 30, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     // Parse & validate body

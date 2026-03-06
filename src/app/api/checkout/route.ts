@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getStripe, PRICE_IDS } from '@/lib/stripe'
+import { rateLimit } from '@/lib/rate-limit'
 import type Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -13,6 +14,12 @@ export async function POST(request: NextRequest) {
         { error: 'Unauthorized' },
         { status: 401 }
       )
+    }
+
+    // Rate limit: 5 requests per minute per user
+    const rl = rateLimit(clerkUserId, 5, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     const body = await request.json()

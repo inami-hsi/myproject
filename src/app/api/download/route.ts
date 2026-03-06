@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { canDownload, getRemainingDownloads, getPlanLimits } from '@/lib/plan-limits'
+import { rateLimit } from '@/lib/rate-limit'
 import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
@@ -112,6 +113,12 @@ export async function POST(request: NextRequest) {
     const { userId: clerkUserId } = await auth()
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 10 requests per minute per user
+    const rl = rateLimit(clerkUserId, 10, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     // Parse & validate body
