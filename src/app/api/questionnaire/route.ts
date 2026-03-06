@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  getQuestionByStep,
-  saveResponses,
-  getResponses,
-} from "@/lib/questionnaire/engine";
+import { getQuestionByStep } from "@/lib/questionnaire/engine";
+import { saveResponses, getResponses } from "@/lib/questionnaire/engine-server";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();

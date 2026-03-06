@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { getQuestion, getNextStep, getResponses } from "@/lib/questionnaire/engine";
+import { getQuestion, getNextStep } from "@/lib/questionnaire/engine";
 
 /**
  * Integration Tests: Questionnaire API

@@ -1,5 +1,3 @@
-import { prisma } from "@/lib/prisma";
-import { logComplianceAction } from "@/lib/auth";
 import type {
   Question,
   NextStep,
@@ -250,8 +248,6 @@ function getQuestionsForType(insuranceType: string): Question[] {
 
 /**
  * 指定IDの質問を取得
- * @param insuranceType 保険種別
- * @param questionId 質問ID
  */
 export function getQuestion(
   insuranceType: string,
@@ -274,18 +270,13 @@ export function getQuestionByStep(
 
 /**
  * 次のステップを計算（分岐ロジック対応）
- * @param insuranceType 保険種別
- * @param questionId 現在の質問ID
- * @param answer ユーザーの回答
  */
 export function getNextStep(
   insuranceType: string,
   questionId: string,
   answer: string | string[]
 ): NextStep {
-  // 自動車保険の分岐ロジック
   if (insuranceType === "auto") {
-    // ステップ1: 車の所有確認
     if (questionId === "vehicle_ownership" && answer === "no") {
       return {
         stepId: "complete_auto_and_redirect",
@@ -294,7 +285,6 @@ export function getNextStep(
       };
     }
 
-    // 標準フロー: 次のステップへ
     const currentQuestion = getQuestion(insuranceType, questionId);
     if (currentQuestion) {
       const nextStep = currentQuestion.step + 1;
@@ -306,7 +296,6 @@ export function getNextStep(
           action: "next",
         };
       }
-      // 最後のステップに達した
       return {
         stepId: "complete",
         insuranceType: "auto",
@@ -315,7 +304,6 @@ export function getNextStep(
     }
   }
 
-  // 火災保険
   if (insuranceType === "fire") {
     const currentQuestion = getQuestion(insuranceType, questionId);
     if (currentQuestion && currentQuestion.step === 1) {
@@ -332,70 +320,6 @@ export function getNextStep(
     insuranceType: (insuranceType as "auto" | "fire" | "liability") ?? "auto",
     action: "next",
   };
-}
-
-/**
- * ユーザーの回答を保存
- */
-export async function saveResponses(
-  userId: string,
-  insuranceType: string,
-  responses: Record<string, string | string[] | number>
-): Promise<void> {
-  try {
-    await prisma.questionnaireResponse.upsert({
-      where: {
-        // Prismaでユニーク条件を複数フィールドで指定
-        userId_insuranceType: {
-          userId,
-          insuranceType: insuranceType as "auto" | "fire" | "liability",
-        },
-      },
-      update: {
-        responses,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId,
-        insuranceType: insuranceType as "auto" | "fire" | "liability",
-        responses,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    // ロ方式コンプライアンスログ
-    await logComplianceAction("questionnaire_updated", userId, {
-      insuranceType,
-      questionCount: Object.keys(responses).length,
-    });
-  } catch (error) {
-    console.error("Failed to save questionnaire responses:", error);
-    throw error;
-  }
-}
-
-/**
- * ユーザーの回答を取得
- */
-export async function getResponses(
-  userId: string,
-  insuranceType: string
-): Promise<Record<string, string | string[] | number> | null> {
-  try {
-    const response = await prisma.questionnaireResponse.findUnique({
-      where: {
-        userId_insuranceType: {
-          userId,
-          insuranceType: insuranceType as "auto" | "fire" | "liability",
-        },
-      },
-    });
-    return (response?.responses as Record<string, string | string[] | number>) ?? null;
-  } catch (error) {
-    console.error("Failed to get questionnaire responses:", error);
-    return null;
-  }
 }
 
 /**
@@ -418,7 +342,7 @@ export function getQuestionFlow(insuranceType: string): Question[] {
 }
 
 /**
- * 質問への回答から スコアリング用の構造化入力を生成
+ * 質問への回答からスコアリング用の構造化入力を生成
  */
 export function normalizeResponsesToScoringInput(
   responses: Record<string, string | string[] | number>,

@@ -24,10 +24,12 @@ import {
   getQuestion,
   getQuestionByStep,
   getQuestionFlow,
-  getResponses,
   normalizeResponsesToScoringInput,
-  saveResponses,
 } from "@/lib/questionnaire/engine";
+import {
+  getResponses,
+  saveResponses,
+} from "@/lib/questionnaire/engine-server";
 
 describe("Questionnaire Engine", () => {
   beforeEach(() => {
