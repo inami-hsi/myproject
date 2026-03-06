@@ -1,5 +1,6 @@
 "use client";
 
+import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -9,15 +10,17 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <TooltipProvider delayDuration={300}>
-        {children}
-      </TooltipProvider>
-    </ThemeProvider>
+    <ClerkProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <TooltipProvider delayDuration={300}>
+          {children}
+        </TooltipProvider>
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }

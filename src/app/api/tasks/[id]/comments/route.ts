@@ -45,6 +45,9 @@ export async function POST(
   try {
     const { id } = await params;
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = createCommentSchema.safeParse(body);
 

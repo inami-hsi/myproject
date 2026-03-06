@@ -17,6 +17,9 @@ export async function GET(
   try {
     const { id } = await params;
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const project = await prisma.project.findFirst({
       where: { id, userId: user.id },
       include: {
@@ -59,6 +62,9 @@ export async function PUT(
   try {
     const { id } = await params;
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = updateProjectSchema.safeParse(body);
 
@@ -105,6 +111,9 @@ export async function DELETE(
   try {
     const { id } = await params;
     const user = await getOrCreateDemoUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const existing = await prisma.project.findFirst({
       where: { id, userId: user.id },

@@ -7,27 +7,14 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // return only profile-related fields
-  const {
-    age,
-    gender,
-    phone,
-    occupation,
-    childrenCount,
-    hasSpouse,
-    prefecture,
-    hasExistingInsurance,
-  } = user;
-
   return NextResponse.json({
-    age,
-    gender,
-    phone,
-    occupation,
-    children: childrenCount,
-    spouse: hasSpouse,
-    prefecture,
-    existingInsurance: hasExistingInsurance,
+    id: user.id,
+    email: user.email,
+    plan: user.plan,
+    status: user.status,
+    monthly_download_count: user.monthly_download_count,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
   });
 }
 
