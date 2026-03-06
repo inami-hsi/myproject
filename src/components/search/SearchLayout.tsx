@@ -21,6 +21,7 @@ import { CompanyTable } from "./CompanyTable";
 import { DownloadPanel } from "./DownloadPanel";
 import { SaveSearchDialog } from "./SaveSearchDialog";
 import { SavedSearchList } from "./SavedSearchList";
+import { ShareButton } from "./ShareButton";
 
 export function SearchLayout() {
   const keyword = useSearchStore((s) => s.filters.keyword);
@@ -98,6 +99,7 @@ export function SearchLayout() {
             </Button>
           </form>
           <SaveSearchDialog />
+          <ShareButton />
         </div>
       </div>
 

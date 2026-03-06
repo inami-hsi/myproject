@@ -353,6 +353,47 @@ export interface Database {
           },
         ]
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'new_companies' | 'alert_triggered'
+          title: string
+          message: string
+          saved_search_id: string | null
+          new_count: number
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          type: 'new_companies' | 'alert_triggered'
+          title: string
+          message: string
+          saved_search_id?: string | null
+          new_count?: number
+          is_read?: boolean
+        }
+        Update: {
+          is_read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notifications_saved_search_id_fkey'
+            columns: ['saved_search_id']
+            isOneToOne: false
+            referencedRelation: 'saved_searches'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       sync_logs: {
         Row: {
           id: string
