@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
+import * as XLSX from 'xlsx'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { canDownload, getRemainingDownloads, getPlanLimits } from '@/lib/plan-limits'
 import { rateLimit } from '@/lib/rate-limit'
@@ -42,7 +43,7 @@ const downloadSchema = z.object({
     has_website: z.boolean().optional(),
     status: z.enum(['active', 'closed', 'merged']).optional(),
   }),
-  format: z.literal('csv'),
+  format: z.enum(['csv', 'xlsx']),
   encoding: z.enum(['utf8', 'sjis']).default('utf8'),
   columns: z
     .array(z.enum(ALLOWED_COLUMNS))
@@ -98,6 +99,34 @@ function generateCSV(
 }
 
 // ---------------------------------------------------------------------------
+// XLSX helpers
+// ---------------------------------------------------------------------------
+
+function generateXLSX(
+  rows: Record<string, unknown>[],
+  columns: AllowedColumn[],
+): Buffer {
+  const headers = columns.map((col) => COLUMN_LABELS[col])
+  const data = rows.map((row) =>
+    columns.map((col) => {
+      const val = row[col]
+      if (val === null || val === undefined) return ''
+      return val
+    }),
+  )
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data])
+
+  // Auto-size columns based on header length
+  ws['!cols'] = columns.map((col) => ({
+    wch: Math.max(COLUMN_LABELS[col].length * 2, 12),
+  }))
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '企業リスト')
+  return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }))
+}
+
+// ---------------------------------------------------------------------------
 // Max sync download threshold
 // ---------------------------------------------------------------------------
 
@@ -131,7 +160,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { search_params: searchParams, columns } = parsed.data
+    const { search_params: searchParams, format, columns } = parsed.data
 
     const supabase = createServiceRoleClient()
 
@@ -144,6 +173,15 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // ----- Check format availability for plan -----
+    const planLimits = getPlanLimits(user.plan)
+    if (format === 'xlsx' && !(planLimits.downloadFormats as readonly string[]).includes('xlsx')) {
+      return NextResponse.json(
+        { error: 'Excel形式はStarter/Proプランでご利用いただけます。' },
+        { status: 403 },
+      )
     }
 
     // ----- Count matching records first -----
@@ -176,7 +214,7 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: user.id,
           search_params: searchParams as unknown as Json,
-          format: 'csv',
+          format,
           encoding: 'utf8',
           record_count: recordCount,
           status: 'pending',
@@ -198,8 +236,23 @@ export async function POST(request: NextRequest) {
     // ----- Fetch all records for CSV -----
     const rows = await fetchAllRecords(supabase, searchParams, columns)
 
-    // ----- Generate CSV -----
-    const csv = generateCSV(rows, columns)
+    // ----- Generate file -----
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    let contentType: string
+    let filename: string
+
+    let responseBody: BodyInit
+
+    if (format === 'xlsx') {
+      const xlsxBuf = generateXLSX(rows, columns)
+      responseBody = new Uint8Array(xlsxBuf)
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      filename = `companies_${timestamp}.xlsx`
+    } else {
+      responseBody = generateCSV(rows, columns)
+      contentType = 'text/csv; charset=utf-8'
+      filename = `companies_${timestamp}.csv`
+    }
 
     // ----- Record in download_logs -----
     const { data: downloadLog } = await supabase
@@ -207,7 +260,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         search_params: searchParams as unknown as Json,
-        format: 'csv',
+        format,
         encoding: 'utf8',
         record_count: rows.length,
         status: 'completed',
@@ -225,14 +278,11 @@ export async function POST(request: NextRequest) {
 
     const remaining = getRemainingDownloads(plan, user.monthly_download_count + rows.length)
 
-    // ----- Return CSV file -----
-    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    const filename = `companies_${timestamp}.csv`
-
-    return new NextResponse(csv, {
+    // ----- Return file -----
+    return new NextResponse(responseBody, {
       status: 200,
       headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
         'X-Download-Id': downloadLog?.id ?? '',
         'X-Record-Count': String(rows.length),

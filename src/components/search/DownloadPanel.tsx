@@ -57,6 +57,7 @@ export function DownloadPanel() {
   const filters = useSearchStore((s) => s.filters);
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<"csv" | "xlsx">("csv");
   const [userInfo, setUserInfo] = useState<UserDownloadInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,8 +82,9 @@ export function DownloadPanel() {
     fetchUserInfo();
   }, []);
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(async (format: "csv" | "xlsx" = "csv") => {
     setIsDownloading(true);
+    setDownloadFormat(format);
     setError(null);
 
     try {
@@ -103,7 +105,7 @@ export function DownloadPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           search_params: searchParams,
-          format: "csv",
+          format,
           encoding: "utf8",
           columns: [
             "name",
@@ -142,7 +144,7 @@ export function DownloadPanel() {
       a.href = url;
       a.download =
         res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ??
-        "companies.csv";
+        `companies.${format}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -165,12 +167,13 @@ export function DownloadPanel() {
     } finally {
       setIsDownloading(false);
     }
-  }, [filters, userInfo]);
+  }, [filters, userInfo, downloadFormat]);
 
   const used = userInfo?.monthly_download_count ?? 0;
   const limit = userInfo?.limit ?? 0;
   const usagePercent = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const isFree = userInfo?.plan === "free";
+  const canUseXlsx = userInfo?.plan === "starter" || userInfo?.plan === "pro";
   const resultCount = totalCount ?? 0;
 
   return (
@@ -178,12 +181,12 @@ export function DownloadPanel() {
       {/* Download buttons */}
       <div className="flex items-center gap-1.5 shrink-0">
         <Button
-          onClick={handleDownload}
+          onClick={() => handleDownload("csv")}
           disabled={isDownloading || resultCount === 0}
           size="sm"
           className="gap-2"
         >
-          {isDownloading ? (
+          {isDownloading && downloadFormat === "csv" ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Download className="h-4 w-4" />
@@ -191,27 +194,44 @@ export function DownloadPanel() {
           CSV
         </Button>
 
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  className="gap-2"
-                  aria-label="Excel ダウンロード（近日公開）"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Excel
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">
-              <p>Coming soon - Starter/Pro プラン向け</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {canUseXlsx ? (
+          <Button
+            onClick={() => handleDownload("xlsx")}
+            disabled={isDownloading || resultCount === 0}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            {isDownloading && downloadFormat === "xlsx" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            Excel
+          </Button>
+        ) : (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    className="gap-2"
+                    aria-label="Excel ダウンロード（Starter/Pro プラン）"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Excel
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                <p>Starter/Pro プランでご利用いただけます</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Result count */}
