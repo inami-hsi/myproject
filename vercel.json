@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-gbizinfo",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-views",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/reset-downloads",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/cleanup-downloads",
+      "schedule": "0 20 * * *"
+    }
+  ]
+}
