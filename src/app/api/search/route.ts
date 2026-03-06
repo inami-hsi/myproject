@@ -79,16 +79,48 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceRoleClient()
 
-    // ----- Build the query -----
-    // We need to handle industry filtering via a join, which requires RPC or
-    // a manual approach. We use the Supabase query builder with inner joins
-    // via the `!inner` modifier when industry filters are present.
-
+    // ----- Pre-filter: get matching company IDs by industry -----
     const needsIndustryFilter =
       params.industries && params.industries.length > 0
 
-    // Start with the companies table, selecting the columns we need.
-    // When industry filtering is needed we join through company_industry_mapping.
+    let industryCompanyIds: string[] | null = null
+
+    if (needsIndustryFilter) {
+      // Build OR conditions for jsic_code prefix matching
+      // e.g. industries=["E", "39"] -> jsic_code LIKE 'E%' OR jsic_code LIKE '39%'
+      const industryConditions = params.industries!
+        .map((code) => `jsic_code.like.${code}%`)
+        .join(',')
+
+      const { data: mappings, error: mappingError } = await supabase
+        .from('company_industry_mapping')
+        .select('company_id')
+        .or(industryConditions)
+
+      if (mappingError) {
+        console.error('Industry filter error:', mappingError)
+        return NextResponse.json(
+          { error: 'Failed to filter by industry' },
+          { status: 500 },
+        )
+      }
+
+      industryCompanyIds = Array.from(
+        new Set((mappings ?? []).map((m) => m.company_id)),
+      )
+
+      // No companies match the industry filter — return empty
+      if (industryCompanyIds.length === 0) {
+        return NextResponse.json({
+          total_count_approx: 0,
+          companies: [],
+          next_cursor: null,
+          has_more: false,
+        })
+      }
+    }
+
+    // ----- Build the query -----
     let query = supabase
       .from('companies')
       .select(
@@ -107,6 +139,11 @@ export async function POST(request: NextRequest) {
         `,
         { count: 'estimated' },
       )
+
+    // Industry pre-filter: restrict to matching company IDs
+    if (industryCompanyIds) {
+      query = query.in('id', industryCompanyIds)
+    }
 
     // --- Filters ---
 
@@ -229,38 +266,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // --- Industry post-filter (when industry codes are provided) ---
-    // Because Supabase JS client doesn't natively support filtering through
-    // a join table with LIKE/startsWith in a single query, we fetch matching
-    // company IDs from company_industry_mapping separately and intersect.
-    let filteredRows = rows ?? []
-
-    if (needsIndustryFilter && filteredRows.length > 0) {
-      const companyIds = filteredRows.map((r) => r.id)
-
-      // Build OR conditions for jsic_code prefix matching
-      // e.g. industries=["E", "G39"] -> jsic_code LIKE 'E%' OR jsic_code LIKE 'G39%'
-      const industryConditions = params.industries!
-        .map((code) => `jsic_code.like.${code}%`)
-        .join(',')
-
-      const { data: mappings, error: mappingError } = await supabase
-        .from('company_industry_mapping')
-        .select('company_id')
-        .in('company_id', companyIds)
-        .or(industryConditions)
-
-      if (mappingError) {
-        console.error('Industry filter error:', mappingError)
-        return NextResponse.json(
-          { error: 'Failed to filter by industry' },
-          { status: 500 },
-        )
-      }
-
-      const matchingIds = new Set((mappings ?? []).map((m) => m.company_id))
-      filteredRows = filteredRows.filter((r) => matchingIds.has(r.id))
-    }
+    const filteredRows = rows ?? []
 
     // --- Fetch industry names for result rows ---
     let industryMap: Record<string, string[]> = {}
