@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -10,6 +10,7 @@ import {
 import { Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSearchStore } from "@/hooks/useSearch";
+import { CompanyDetailModal } from "./CompanyDetailModal";
 import type { CompanyResult } from "@/types/search";
 
 // ============================================================
@@ -99,6 +100,14 @@ export function CompanyTable() {
   const hasMore = useSearchStore((s) => s.hasMore);
   const loadMore = useSearchStore((s) => s.loadMore);
 
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const handleRowClick = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setDetailOpen(true);
+  };
+
   const data = useMemo(() => results, [results]);
 
   const table = useReactTable({
@@ -145,7 +154,17 @@ export function CompanyTable() {
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b transition-colors duration-150 hover:bg-secondary/30 last:border-0"
+                className="cursor-pointer border-b transition-colors duration-150 hover:bg-secondary/30 last:border-0"
+                onClick={() => handleRowClick(row.original.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleRowClick(row.original.id);
+                  }
+                }}
+                aria-label={`${row.original.name}の詳細を表示`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
@@ -161,7 +180,11 @@ export function CompanyTable() {
       {/* Mobile: card view */}
       <div className="flex flex-col gap-3 lg:hidden">
         {results.map((company) => (
-          <CompanyCard key={company.id} company={company} />
+          <CompanyCard
+            key={company.id}
+            company={company}
+            onClick={() => handleRowClick(company.id)}
+          />
         ))}
       </div>
 
@@ -179,6 +202,13 @@ export function CompanyTable() {
           </Button>
         </div>
       )}
+
+      {/* Company detail modal */}
+      <CompanyDetailModal
+        companyId={selectedCompanyId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
@@ -187,13 +217,31 @@ export function CompanyTable() {
 // Mobile card
 // ============================================================
 
-function CompanyCard({ company }: { company: CompanyResult }) {
+function CompanyCard({
+  company,
+  onClick,
+}: {
+  company: CompanyResult;
+  onClick?: () => void;
+}) {
   const location = company.city_name
     ? `${company.prefecture_name} ${company.city_name}`
     : company.prefecture_name;
 
   return (
-    <div className="rounded-md border bg-card p-4 space-y-2">
+    <div
+      className="cursor-pointer rounded-md border bg-card p-4 space-y-2 transition-colors duration-150 hover:bg-secondary/30"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && onClick) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      aria-label={`${company.name}の詳細を表示`}
+    >
       <h4 className="font-heading font-semibold text-sm leading-tight">
         {company.name}
       </h4>
