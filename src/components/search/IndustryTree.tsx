@@ -61,10 +61,21 @@ export function IndustryTree() {
 
   const selectedCount = selectedIndustries.length;
 
-  // Parent toggle: select / deselect all children
+  // Parent toggle: select / deselect all children (or major code itself if no children)
   const toggleMajor = useCallback(
     (major: IndustryNode) => {
       const childCodes = (major.children ?? []).map((c) => c.code);
+
+      // If no children, toggle the major code itself
+      if (childCodes.length === 0) {
+        if (selectedIndustries.includes(major.code)) {
+          setIndustries(selectedIndustries.filter((c) => c !== major.code));
+        } else {
+          setIndustries([...selectedIndustries, major.code]);
+        }
+        return;
+      }
+
       const allSelected = childCodes.every((c) => selectedIndustries.includes(c));
 
       if (allSelected) {
@@ -149,29 +160,37 @@ function MajorItem({
 }) {
   const [expanded, setExpanded] = useState(false);
   const children = node.children ?? [];
+  const hasChildren = children.length > 0;
   const selectedChildCount = children.filter((c) =>
     selectedCodes.includes(c.code),
   ).length;
-  const allSelected = children.length > 0 && selectedChildCount === children.length;
-  const someSelected = selectedChildCount > 0 && !allSelected;
+  // For categories without children, check if the major code itself is selected
+  const allSelected = hasChildren
+    ? selectedChildCount === children.length
+    : selectedCodes.includes(node.code);
+  const someSelected = hasChildren && selectedChildCount > 0 && !allSelected;
 
   return (
     <li role="treeitem" aria-expanded={expanded} aria-selected={allSelected}>
       <div className="flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors duration-150 hover:bg-secondary">
-        {/* Expand toggle */}
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded transition-transform duration-150"
-          aria-label={expanded ? "折りたたむ" : "展開する"}
-        >
-          <ChevronRight
-            className={cn(
-              "h-3.5 w-3.5 text-muted-foreground transition-transform duration-150",
-              expanded && "rotate-90",
-            )}
-          />
-        </button>
+        {/* Expand toggle (only for categories with children) */}
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded transition-transform duration-150"
+            aria-label={expanded ? "折りたたむ" : "展開する"}
+          >
+            <ChevronRight
+              className={cn(
+                "h-3.5 w-3.5 text-muted-foreground transition-transform duration-150",
+                expanded && "rotate-90",
+              )}
+            />
+          </button>
+        ) : (
+          <span className="w-5 shrink-0" />
+        )}
 
         {/* Checkbox */}
         <label className="flex flex-1 cursor-pointer items-center gap-2 text-xs">
