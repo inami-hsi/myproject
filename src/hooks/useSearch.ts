@@ -30,6 +30,10 @@ interface SearchActions {
   setPrefectures: (codes: string[]) => void;
   togglePrefecture: (code: string) => void;
   setKeyword: (keyword: string) => void;
+  setCapitalRange: (min?: number, max?: number) => void;
+  setEmployeeRange: (min?: number, max?: number) => void;
+  setHasWebsite: (value?: boolean) => void;
+  setStatus: (value?: "active" | "closed" | "merged") => void;
   removeFilter: (chip: FilterChip) => void;
   clearAllFilters: () => void;
   fetchCount: () => Promise<void>;
@@ -70,6 +74,12 @@ function buildQueryParams(
   }
   if (filters.employee_max !== undefined) {
     params.set("employee_max", String(filters.employee_max));
+  }
+  if (filters.has_website !== undefined) {
+    params.set("has_website", String(filters.has_website));
+  }
+  if (filters.status) {
+    params.set("status", filters.status);
   }
   if (filters.sort_by) {
     params.set("sort_by", filters.sort_by);
@@ -157,6 +167,30 @@ export const useSearchStore = create<SearchState & SearchActions>(
       scheduleFetchCount();
     },
 
+    setCapitalRange: (min, max) => {
+      set((s) => ({
+        filters: { ...s.filters, capital_min: min, capital_max: max },
+      }));
+      scheduleFetchCount();
+    },
+
+    setEmployeeRange: (min, max) => {
+      set((s) => ({
+        filters: { ...s.filters, employee_min: min, employee_max: max },
+      }));
+      scheduleFetchCount();
+    },
+
+    setHasWebsite: (value) => {
+      set((s) => ({ filters: { ...s.filters, has_website: value } }));
+      scheduleFetchCount();
+    },
+
+    setStatus: (value) => {
+      set((s) => ({ filters: { ...s.filters, status: value } }));
+      scheduleFetchCount();
+    },
+
     removeFilter: (chip) => {
       const { filters } = get();
       if (chip.category === "industry") {
@@ -173,6 +207,24 @@ export const useSearchStore = create<SearchState & SearchActions>(
             prefectures: filters.prefectures.filter((c) => c !== chip.id),
           },
         });
+      } else if (chip.category === "other") {
+        if (chip.id === "capital") {
+          set({
+            filters: { ...filters, capital_min: undefined, capital_max: undefined },
+          });
+        } else if (chip.id === "employee") {
+          set({
+            filters: { ...filters, employee_min: undefined, employee_max: undefined },
+          });
+        } else if (chip.id === "has_website") {
+          set({
+            filters: { ...filters, has_website: undefined },
+          });
+        } else if (chip.id === "status") {
+          set({
+            filters: { ...filters, status: undefined },
+          });
+        }
       }
       scheduleFetchCount();
     },
@@ -276,6 +328,56 @@ export function useFilterChips(): FilterChip[] {
   }
   for (const code of filters.prefectures) {
     chips.push({ id: code, label: code, category: "region" });
+  }
+
+  if (filters.capital_min !== undefined || filters.capital_max !== undefined) {
+    const min = filters.capital_min;
+    const max = filters.capital_max;
+    const formatCapital = (v: number) => {
+      if (v >= 100_000_000) return `${v / 100_000_000}億円`;
+      if (v >= 10_000) return `${v / 10_000}万円`;
+      return `${v}円`;
+    };
+    const label =
+      min !== undefined && max !== undefined
+        ? `資本金: ${formatCapital(min)}〜${formatCapital(max)}`
+        : min !== undefined
+          ? `資本金: ${formatCapital(min)}以上`
+          : `資本金: ${formatCapital(max!)}以下`;
+    chips.push({ id: "capital", label, category: "other" });
+  }
+
+  if (filters.employee_min !== undefined || filters.employee_max !== undefined) {
+    const min = filters.employee_min;
+    const max = filters.employee_max;
+    const label =
+      min !== undefined && max !== undefined
+        ? `従業員数: ${min}〜${max}人`
+        : min !== undefined
+          ? `従業員数: ${min}人以上`
+          : `従業員数: ${max!}人以下`;
+    chips.push({ id: "employee", label, category: "other" });
+  }
+
+  if (filters.has_website !== undefined) {
+    chips.push({
+      id: "has_website",
+      label: filters.has_website ? "Webサイトあり" : "Webサイトなし",
+      category: "other",
+    });
+  }
+
+  if (filters.status) {
+    const statusLabels: Record<string, string> = {
+      active: "営業中",
+      closed: "閉鎖",
+      merged: "合併",
+    };
+    chips.push({
+      id: "status",
+      label: `ステータス: ${statusLabels[filters.status] ?? filters.status}`,
+      category: "other",
+    });
   }
 
   return chips;

@@ -16,8 +16,11 @@ import { LiveCounter } from "./LiveCounter";
 import { FilterChipBar } from "./FilterChipBar";
 import { IndustryTree } from "./IndustryTree";
 import { RegionCascader } from "./RegionCascader";
+import { AdvancedFilters } from "./AdvancedFilters";
 import { CompanyTable } from "./CompanyTable";
 import { DownloadPanel } from "./DownloadPanel";
+import { SaveSearchDialog } from "./SaveSearchDialog";
+import { SavedSearchList } from "./SavedSearchList";
 
 export function SearchLayout() {
   const keyword = useSearchStore((s) => s.filters.keyword);
@@ -26,6 +29,12 @@ export function SearchLayout() {
   const fetchCount = useSearchStore((s) => s.fetchCount);
   const industries = useSearchStore((s) => s.filters.industries);
   const prefectures = useSearchStore((s) => s.filters.prefectures);
+  const capitalMin = useSearchStore((s) => s.filters.capital_min);
+  const capitalMax = useSearchStore((s) => s.filters.capital_max);
+  const employeeMin = useSearchStore((s) => s.filters.employee_min);
+  const employeeMax = useSearchStore((s) => s.filters.employee_max);
+  const hasWebsite = useSearchStore((s) => s.filters.has_website);
+  const status = useSearchStore((s) => s.filters.status);
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -39,7 +48,7 @@ export function SearchLayout() {
   useEffect(() => {
     fetchResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [industries, prefectures, keyword]);
+  }, [industries, prefectures, keyword, capitalMin, capitalMax, employeeMin, employeeMax, hasWebsite, status]);
 
   const handleKeywordSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -49,7 +58,13 @@ export function SearchLayout() {
     [fetchResults],
   );
 
-  const activeFilterCount = industries.length + prefectures.length;
+  const activeFilterCount =
+    industries.length +
+    prefectures.length +
+    (capitalMin !== undefined || capitalMax !== undefined ? 1 : 0) +
+    (employeeMin !== undefined || employeeMax !== undefined ? 1 : 0) +
+    (hasWebsite !== undefined ? 1 : 0) +
+    (status !== undefined ? 1 : 0);
 
   return (
     <div className="flex h-full flex-col gap-6">
@@ -62,25 +77,28 @@ export function SearchLayout() {
           <LiveCounter />
         </div>
 
-        <form
-          onSubmit={handleKeywordSubmit}
-          className="flex w-full max-w-sm items-center gap-2"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="キーワード検索..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              className="pl-9"
-              aria-label="キーワード検索"
-            />
-          </div>
-          <Button type="submit" size="default">
-            検索
-          </Button>
-        </form>
+        <div className="flex items-end gap-2">
+          <form
+            onSubmit={handleKeywordSubmit}
+            className="flex w-full max-w-sm items-center gap-2"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="キーワード検索..."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                className="pl-9"
+                aria-label="キーワード検索"
+              />
+            </div>
+            <Button type="submit" size="default">
+              検索
+            </Button>
+          </form>
+          <SaveSearchDialog />
+        </div>
       </div>
 
       {/* Filter chips */}
@@ -137,9 +155,13 @@ export function SearchLayout() {
 function FilterPanel() {
   return (
     <div className="space-y-6">
+      <SavedSearchList />
+      <div className="border-t" />
       <IndustryTree />
       <div className="border-t" />
       <RegionCascader />
+      <div className="border-t" />
+      <AdvancedFilters />
     </div>
   );
 }

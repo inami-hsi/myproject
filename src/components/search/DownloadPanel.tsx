@@ -2,9 +2,15 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { Download, Loader2, ArrowUpRight } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSearchStore } from "@/hooks/useSearch";
 
 // ---------------------------------------------------------------------------
@@ -169,20 +175,44 @@ export function DownloadPanel() {
 
   return (
     <div className="sticky bottom-0 z-10 flex h-14 items-center gap-4 border-t bg-background px-4 sm:px-6">
-      {/* Download button */}
-      <Button
-        onClick={handleDownload}
-        disabled={isDownloading || resultCount === 0}
-        size="sm"
-        className="gap-2 shrink-0"
-      >
-        {isDownloading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Download className="h-4 w-4" />
-        )}
-        CSV{"\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9"}
-      </Button>
+      {/* Download buttons */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button
+          onClick={handleDownload}
+          disabled={isDownloading || resultCount === 0}
+          size="sm"
+          className="gap-2"
+        >
+          {isDownloading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          CSV
+        </Button>
+
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="gap-2"
+                  aria-label="Excel ダウンロード（近日公開）"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              <p>Coming soon - Starter/Pro プラン向け</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {/* Result count */}
       <span className="text-sm text-muted-foreground tabular-nums shrink-0">
