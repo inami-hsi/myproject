@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,7 +25,7 @@ interface IndustryChild {
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // Fetch major and middle level classifications
     const { data, error } = await supabase

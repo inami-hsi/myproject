@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // GET /api/search/count
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const hasWebsite = searchParams.get('has_website')
     const status = searchParams.get('status')
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // --- Fast path: use materialized view for simple prefecture + industry ---
     const isSimpleFilter =

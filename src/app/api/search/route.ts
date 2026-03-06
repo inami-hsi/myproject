@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
@@ -51,14 +51,12 @@ function encodeCursor(payload: CursorPayload): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
+    // Auth check (optional — unauthenticated users get limited results)
     const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    // Rate limit: 30 requests per minute per user
-    const rl = rateLimit(userId, 30, 60_000)
+    // Rate limit: 30 requests per minute per user (use IP for anonymous)
+    const rateLimitKey = userId ?? (request.headers.get('x-forwarded-for') ?? 'anonymous')
+    const rl = rateLimit(rateLimitKey, 30, 60_000)
     if (!rl.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
@@ -76,9 +74,10 @@ export async function POST(request: NextRequest) {
     const params = parsed.data
     const sortBy = params.sort_by ?? 'updated_at'
     const sortOrder = params.sort_order ?? 'desc'
-    const limit = params.limit ?? 50
+    // Unauthenticated users get max 10 results
+    const limit = userId ? (params.limit ?? 50) : Math.min(params.limit ?? 10, 10)
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceRoleClient()
 
     // ----- Build the query -----
     // We need to handle industry filtering via a join, which requires RPC or

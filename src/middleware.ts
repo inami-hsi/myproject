@@ -8,8 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/stats(.*)',
   '/api/webhooks/(.*)',
   '/api/cron/(.*)',
-  '/api/search/preview(.*)',
-  '/api/search/share(.*)',
+  '/api/search(.*)',
   '/api/industries(.*)',
   '/api/regions(.*)',
 ])

@@ -269,8 +269,25 @@ export const useSearchStore = create<SearchState & SearchActions>(
       });
 
       try {
-        const params = buildQueryParams(filters);
-        const res = await fetch(`/api/search?${params.toString()}`);
+        const body: Record<string, unknown> = {};
+        if (filters.industries.length > 0) body.industries = filters.industries;
+        if (filters.prefectures.length > 0) body.prefectures = filters.prefectures;
+        if (filters.cities.length > 0) body.cities = filters.cities;
+        if (filters.keyword) body.keyword = filters.keyword;
+        if (filters.capital_min !== undefined) body.capital_min = filters.capital_min;
+        if (filters.capital_max !== undefined) body.capital_max = filters.capital_max;
+        if (filters.employee_min !== undefined) body.employee_min = filters.employee_min;
+        if (filters.employee_max !== undefined) body.employee_max = filters.employee_max;
+        if (filters.has_website !== undefined) body.has_website = filters.has_website;
+        if (filters.status) body.status = filters.status;
+        if (filters.sort_by) body.sort_by = filters.sort_by;
+        if (filters.sort_order) body.sort_order = filters.sort_order;
+
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
         if (!res.ok) throw new Error("Search failed");
         const data: SearchResponse = await res.json();
         set({
@@ -295,8 +312,26 @@ export const useSearchStore = create<SearchState & SearchActions>(
       set({ isLoadingMore: true, error: null });
 
       try {
-        const params = buildQueryParams(filters, nextCursor);
-        const res = await fetch(`/api/search?${params.toString()}`);
+        const body: Record<string, unknown> = {};
+        if (filters.industries.length > 0) body.industries = filters.industries;
+        if (filters.prefectures.length > 0) body.prefectures = filters.prefectures;
+        if (filters.cities.length > 0) body.cities = filters.cities;
+        if (filters.keyword) body.keyword = filters.keyword;
+        if (filters.capital_min !== undefined) body.capital_min = filters.capital_min;
+        if (filters.capital_max !== undefined) body.capital_max = filters.capital_max;
+        if (filters.employee_min !== undefined) body.employee_min = filters.employee_min;
+        if (filters.employee_max !== undefined) body.employee_max = filters.employee_max;
+        if (filters.has_website !== undefined) body.has_website = filters.has_website;
+        if (filters.status) body.status = filters.status;
+        if (filters.sort_by) body.sort_by = filters.sort_by;
+        if (filters.sort_order) body.sort_order = filters.sort_order;
+        body.cursor = nextCursor;
+
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
         if (!res.ok) throw new Error("Load more failed");
         const data: SearchResponse = await res.json();
         set((s) => ({

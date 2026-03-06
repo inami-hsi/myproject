@@ -25,9 +25,9 @@ export function IndustryTree() {
 
     fetch("/api/industries")
       .then((res) => res.json())
-      .then((data: IndustryNode[]) => {
+      .then((data: { industries?: IndustryNode[] }) => {
         if (!cancelled) {
-          setNodes(data);
+          setNodes(data.industries ?? []);
           setIsLoading(false);
         }
       })

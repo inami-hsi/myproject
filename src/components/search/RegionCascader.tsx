@@ -22,9 +22,9 @@ export function RegionCascader() {
 
     fetch("/api/regions")
       .then((res) => res.json())
-      .then((data: RegionGroup[]) => {
+      .then((data: { regions?: RegionGroup[] }) => {
         if (!cancelled) {
-          setRegions(data);
+          setRegions(data.regions ?? []);
           setIsLoading(false);
         }
       })
