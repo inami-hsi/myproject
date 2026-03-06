@@ -17,6 +17,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
                 ダッシュボード
               </Link>
+              <Link href="/stats" className="text-muted-foreground hover:text-foreground transition-colors">
+                統計
+              </Link>
               <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
                 料金
               </Link>
