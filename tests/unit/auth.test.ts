@@ -1,228 +1,132 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockPrisma, mockCookies } = vi.hoisted(() => {
-  const mockPrisma = {
-    user: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-    session: {
-      findUnique: vi.fn(),
-      upsert: vi.fn(),
-      delete: vi.fn(),
-    },
-    emailConfirmation: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      delete: vi.fn(),
-    },
-    complianceLog: {
-      create: vi.fn(),
-    },
-  };
-
-  const mockCookies = vi.fn();
-
-  return { mockPrisma, mockCookies };
-});
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: mockPrisma,
+const mockSupabase = vi.hoisted(() => ({
+  from: vi.fn().mockReturnThis(),
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  single: vi.fn(),
 }));
 
-vi.mock("next/headers", () => ({
-  cookies: mockCookies,
+const mockAuth = vi.hoisted(() => vi.fn());
+const mockCurrentUser = vi.hoisted(() => vi.fn());
+
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: mockAuth,
+  currentUser: mockCurrentUser,
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServiceRoleClient: () => mockSupabase,
 }));
 
 import {
-  createSession,
-  destroySession,
   getCurrentUser,
-  registerUser,
-  sendConfirmationEmail,
+  requireUser,
+  getClerkProfile,
   updateUserProfile,
-  verifyConfirmationToken,
+  logComplianceAction,
 } from "@/lib/auth";
 
 describe("auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSupabase.from.mockReturnThis();
+    mockSupabase.select.mockReturnThis();
+    mockSupabase.eq.mockReturnThis();
   });
 
-  describe("registerUser", () => {
-    it("returns validation errors for invalid inputs", async () => {
-      const result = await registerUser({
-        email: "bad-email",
-        name: "",
-        age: 10,
-        authMethod: "EMAIL",
-      });
+  describe("getCurrentUser", () => {
+    it("returns null when not authenticated", async () => {
+      mockAuth.mockResolvedValueOnce({ userId: null });
 
-      expect(result.status).toBe("error");
-      expect(result.errors).toMatchObject({
-        email: "正しいメール形式を入力してください",
-        name: "氏名を入力してください",
-        age: "18～99歳の年齢を入力してください",
-      });
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      const user = await getCurrentUser();
+      expect(user).toBeNull();
     });
 
-    it("returns duplicate email error", async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: "u1" });
-
-      const result = await registerUser({
-        email: "existing@example.com",
-        name: "Taro",
-        age: 30,
-        authMethod: "EMAIL",
+    it("returns user data when authenticated", async () => {
+      mockAuth.mockResolvedValueOnce({ userId: "clerk_123" });
+      mockSupabase.single.mockResolvedValueOnce({
+        data: { id: "u1", clerk_user_id: "clerk_123", email: "test@example.com" },
       });
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("既に登録済み");
-      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+      const user = await getCurrentUser();
+      expect(user).toEqual({
+        id: "u1",
+        clerk_user_id: "clerk_123",
+        email: "test@example.com",
+      });
+      expect(mockSupabase.from).toHaveBeenCalledWith("users");
+      expect(mockSupabase.eq).toHaveBeenCalledWith("clerk_user_id", "clerk_123");
     });
 
-    it("creates a user and logs compliance", async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
-      mockPrisma.user.create.mockResolvedValueOnce({ id: "u2" });
-      mockPrisma.complianceLog.create.mockResolvedValueOnce({ id: "c1" });
+    it("returns null when user not found in database", async () => {
+      mockAuth.mockResolvedValueOnce({ userId: "clerk_123" });
+      mockSupabase.single.mockResolvedValueOnce({ data: null });
 
-      const result = await registerUser({
-        email: "new@example.com",
-        name: "Hanako",
-        age: 28,
-        authMethod: "EMAIL",
-      });
-
-      expect(result).toMatchObject({
-        status: "success",
-        userId: "u2",
-      });
-      expect(mockPrisma.user.create).toHaveBeenCalled();
-      expect(mockPrisma.complianceLog.create).toHaveBeenCalled();
+      const user = await getCurrentUser();
+      expect(user).toBeNull();
     });
   });
 
-  describe("sendConfirmationEmail", () => {
-    it("stores token and returns success", async () => {
-      mockPrisma.emailConfirmation.create.mockResolvedValueOnce({ id: "ec1" });
+  describe("requireUser", () => {
+    it("returns user when authenticated", async () => {
+      mockAuth.mockResolvedValueOnce({ userId: "clerk_123" });
+      mockSupabase.single.mockResolvedValueOnce({
+        data: { id: "u1", clerk_user_id: "clerk_123" },
+      });
 
-      const result = await sendConfirmationEmail("u1", "u1@example.com");
+      const user = await requireUser();
+      expect(user).toEqual({ id: "u1", clerk_user_id: "clerk_123" });
+    });
 
-      expect(result.status).toBe("success");
-      expect(mockPrisma.emailConfirmation.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            userId: "u1",
-            email: "u1@example.com",
-          }),
-        })
-      );
+    it("throws when not authenticated", async () => {
+      mockAuth.mockResolvedValueOnce({ userId: null });
+
+      await expect(requireUser()).rejects.toThrow("Unauthorized");
     });
   });
 
-  describe("verifyConfirmationToken", () => {
-    it("returns error when token not found or expired", async () => {
-      mockPrisma.emailConfirmation.findFirst.mockResolvedValueOnce(null);
+  describe("getClerkProfile", () => {
+    it("returns null when no clerk user", async () => {
+      mockCurrentUser.mockResolvedValueOnce(null);
 
-      const result = await verifyConfirmationToken("invalid-token");
-
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("無効");
+      const profile = await getClerkProfile();
+      expect(profile).toBeNull();
     });
 
-    it("verifies token, updates user, and deletes token", async () => {
-      mockPrisma.emailConfirmation.findFirst.mockResolvedValueOnce({
-        id: "ec1",
-        userId: "u1",
-        email: "u1@example.com",
+    it("returns mapped profile from clerk user", async () => {
+      mockCurrentUser.mockResolvedValueOnce({
+        id: "clerk_123",
+        emailAddresses: [{ emailAddress: "test@example.com" }],
+        firstName: "Taro",
+        lastName: "Yamada",
+        imageUrl: "https://example.com/avatar.png",
       });
-      mockPrisma.user.update.mockResolvedValueOnce({ id: "u1" });
-      mockPrisma.emailConfirmation.delete.mockResolvedValueOnce({ id: "ec1" });
-      mockPrisma.complianceLog.create.mockResolvedValueOnce({ id: "c2" });
 
-      const result = await verifyConfirmationToken("valid-token");
-
-      expect(result).toMatchObject({
-        status: "success",
-        userId: "u1",
-      });
-      expect(mockPrisma.user.update).toHaveBeenCalled();
-      expect(mockPrisma.emailConfirmation.delete).toHaveBeenCalledWith({
-        where: { id: "ec1" },
+      const profile = await getClerkProfile();
+      expect(profile).toEqual({
+        id: "clerk_123",
+        email: "test@example.com",
+        firstName: "Taro",
+        lastName: "Yamada",
+        imageUrl: "https://example.com/avatar.png",
       });
     });
   });
 
   describe("updateUserProfile", () => {
-    it("maps fields and updates profile", async () => {
-      mockPrisma.user.update.mockResolvedValueOnce({ id: "u1" });
-      mockPrisma.complianceLog.create.mockResolvedValueOnce({ id: "c3" });
-
-      const result = await updateUserProfile("u1", {
-        age: 40,
-        gender: "M",
-        occupation: "会社員",
-        children: 2,
-        spouse: true,
-        prefecture: "東京都",
-        existingInsurance: false,
-      });
-
-      expect(result.status).toBe("success");
-      expect(mockPrisma.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: "u1" },
-          data: expect.objectContaining({
-            childrenCount: 2,
-            hasSpouse: true,
-            hasExistingInsurance: false,
-          }),
-        })
-      );
+    it("is a no-op stub that does not throw", async () => {
+      await expect(
+        updateUserProfile("u1", { age: 30, occupation: "engineer" })
+      ).resolves.toBeUndefined();
     });
   });
 
-  describe("session", () => {
-    it("returns null when no cookie is present", async () => {
-      mockCookies.mockResolvedValueOnce({
-        get: vi.fn().mockReturnValue(undefined),
-      });
-
-      const user = await getCurrentUser();
-
-      expect(user).toBeNull();
-    });
-
-    it("returns null when session expired", async () => {
-      mockCookies.mockResolvedValueOnce({
-        get: vi.fn().mockReturnValue({ value: "u1" }),
-      });
-      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: "u1" });
-      mockPrisma.session.findUnique.mockResolvedValueOnce({
-        userId: "u1",
-        expiresAt: new Date(Date.now() - 1000),
-      });
-
-      const user = await getCurrentUser();
-
-      expect(user).toBeNull();
-    });
-
-    it("creates session and returns userId", async () => {
-      mockPrisma.session.upsert.mockResolvedValueOnce({ userId: "u1" });
-
-      const sessionId = await createSession("u1");
-
-      expect(sessionId).toBe("u1");
-      expect(mockPrisma.session.upsert).toHaveBeenCalled();
-    });
-
-    it("destroySession does not throw when session does not exist", async () => {
-      mockPrisma.session.delete.mockRejectedValueOnce(new Error("not found"));
-
-      await expect(destroySession("u1")).resolves.toBeUndefined();
+  describe("logComplianceAction", () => {
+    it("is a no-op stub that does not throw", async () => {
+      await expect(
+        logComplianceAction("test_action", "u1", { key: "value" })
+      ).resolves.toBeUndefined();
     });
   });
 });

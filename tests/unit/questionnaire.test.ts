@@ -48,9 +48,9 @@ describe("Questionnaire Engine", () => {
     });
 
     it("retrieves fire insurance questions", () => {
-      const question = getQuestion("fire", "building_type");
+      const question = getQuestion("fire", "target_object");
       expect(question).not.toBeNull();
-      expect(question?.title).toContain("建物の種類");
+      expect(question?.title).toContain("対象の建物");
     });
   });
 
@@ -97,12 +97,12 @@ describe("Questionnaire Engine", () => {
     });
 
     it("completes after step 8 of auto insurance", () => {
-      const nextStep = getNextStep("auto", "budget", "50000");
+      const nextStep = getNextStep("auto", "budget", "budget_30000_50000");
       expect(nextStep.action).toBe("complete");
     });
 
     it("completes fire insurance after step 1", () => {
-      const nextStep = getNextStep("fire", "building_type", "detached_house");
+      const nextStep = getNextStep("fire", "target_object", "detached_house");
       expect(nextStep.action).toBe("complete");
     });
   });

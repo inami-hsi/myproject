@@ -95,11 +95,8 @@ export default function ProfileForm() {
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const target = e.target;
-    const name = target.name;
-    const value = target.value;
-    const type = target.type;
-    const checked = target instanceof HTMLInputElement ? target.checked : false;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,

@@ -40,16 +40,16 @@ describe("Questionnaire API Integration", () => {
   describe("Step Navigation", () => {
     it("should return step 1 question for auto insurance", async () => {
       const question = getQuestion("auto", "vehicle_ownership");
-      expect(question).toBeDefined();
-      expect(question.id).toBe("vehicle_ownership");
-      expect(question.step).toBe(1);
-      expect(question.type).toBe("single_choice");
-      expect(question.options.length).toBeGreaterThan(0);
+      expect(question).not.toBeNull();
+      expect(question!.id).toBe("vehicle_ownership");
+      expect(question!.step).toBe(1);
+      expect(question!.type).toBe("single_choice");
+      expect(question!.options.length).toBeGreaterThan(0);
     });
 
     it("should return options with labels and values", async () => {
       const question = getQuestion("auto", "vehicle_ownership");
-      expect(question.options).toContainEqual(
+      expect(question!.options).toContainEqual(
         expect.objectContaining({
           value: "yes",
           label: expect.any(String),
@@ -428,8 +428,9 @@ describe("Questionnaire API Integration", () => {
         },
       });
 
-      expect(Array.isArray(saved?.responses.coverage_needs)).toBe(true);
-      expect(saved?.responses.coverage_needs).toHaveLength(3);
+      const responses = saved?.responses as Record<string, unknown>;
+      expect(Array.isArray(responses?.coverage_needs)).toBe(true);
+      expect(responses?.coverage_needs).toHaveLength(3);
     });
 
     it("should update existing responses without creating duplicates", async () => {
