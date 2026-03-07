@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -41,6 +43,8 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning>
       <body className="min-h-dvh font-body antialiased">
         <Providers>{children}</Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
