@@ -52,6 +52,25 @@ export default async function PublicLayout({ children }: { children: React.React
       </header>
 
       <main>{children}</main>
+
+      <footer className="border-t">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} 企業リスト
+          </p>
+          <nav className="flex items-center gap-4">
+            <Link href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              利用規約
+            </Link>
+            <Link href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              プライバシーポリシー
+            </Link>
+            <Link href="/pricing" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              料金
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
