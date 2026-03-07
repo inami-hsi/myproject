@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getStripe, getPlanFromPriceId } from '@/lib/stripe'
+import { sendPlanChanged } from '@/lib/email'
 import type Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -56,6 +57,16 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Failed to update user after checkout:', updateError)
+        } else {
+          // Send plan change email
+          const { data: userData } = await supabase
+            .from('users')
+            .select('email')
+            .eq('clerk_user_id', clerkUserId)
+            .single()
+          if (userData?.email) {
+            sendPlanChanged(userData.email, { oldPlan: 'free', newPlan: plan })
+          }
         }
 
         console.log(
@@ -75,6 +86,13 @@ export async function POST(request: NextRequest) {
 
         const plan = getPlanFromPriceId(priceId)
 
+        // Get current plan before update for email notification
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('email, plan')
+          .eq('stripe_subscription_id', subscription.id)
+          .single()
+
         const { error: updateError } = await supabase
           .from('users')
           .update({ plan })
@@ -82,6 +100,8 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Failed to update user plan on subscription update:', updateError)
+        } else if (currentUser?.email && currentUser.plan !== plan) {
+          sendPlanChanged(currentUser.email, { oldPlan: currentUser.plan, newPlan: plan })
         }
 
         console.log(
@@ -93,6 +113,13 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
 
+        // Get user email before resetting plan
+        const { data: deletedUser } = await supabase
+          .from('users')
+          .select('email, plan')
+          .eq('stripe_subscription_id', subscription.id)
+          .single()
+
         const { error: updateError } = await supabase
           .from('users')
           .update({
@@ -103,6 +130,8 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Failed to reset user plan on subscription deletion:', updateError)
+        } else if (deletedUser?.email) {
+          sendPlanChanged(deletedUser.email, { oldPlan: deletedUser.plan, newPlan: 'free' })
         }
 
         console.log(

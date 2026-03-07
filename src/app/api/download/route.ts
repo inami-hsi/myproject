@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { canDownload, getRemainingDownloads, getPlanLimits } from '@/lib/plan-limits'
 import { rateLimit } from '@/lib/rate-limit'
+import { sendDownloadComplete, sendUsageAlert } from '@/lib/email'
 import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
@@ -276,7 +277,27 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', user.id)
 
-    const remaining = getRemainingDownloads(plan, user.monthly_download_count + rows.length)
+    const newCount = user.monthly_download_count + rows.length
+    const remaining = getRemainingDownloads(plan, newCount)
+
+    // ----- Send email notifications (fire-and-forget) -----
+    if (user.email) {
+      sendDownloadComplete(user.email, {
+        recordCount: rows.length,
+        format,
+        downloadId: downloadLog?.id ?? '',
+      })
+
+      // Usage alert at 80% and 100%
+      const limits = getPlanLimits(plan)
+      const usagePercent = Math.floor((newCount / limits.monthlyDownloadRecords) * 100)
+      const prevPercent = Math.floor((user.monthly_download_count / limits.monthlyDownloadRecords) * 100)
+      if (usagePercent >= 80 && prevPercent < 80) {
+        sendUsageAlert(user.email, { used: newCount, limit: limits.monthlyDownloadRecords, percent: 80 })
+      } else if (usagePercent >= 100 && prevPercent < 100) {
+        sendUsageAlert(user.email, { used: newCount, limit: limits.monthlyDownloadRecords, percent: 100 })
+      }
+    }
 
     // ----- Return file -----
     return new NextResponse(responseBody, {
