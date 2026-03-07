@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // GET /api/search/count
@@ -7,6 +8,12 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limit: 60 requests per minute per IP
+    const ip = request.headers.get('x-forwarded-for') ?? 'anonymous'
+    const rl = rateLimit(`count:${ip}`, 60, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
     const { searchParams } = new URL(request.url)
 
     // Support both comma-separated and repeated params

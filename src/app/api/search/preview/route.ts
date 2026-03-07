@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // GET /api/search/preview
@@ -9,6 +10,12 @@ const PREVIEW_LIMIT = 5
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limit: 30 requests per minute per IP
+    const ip = request.headers.get('x-forwarded-for') ?? 'anonymous'
+    const rl = rateLimit(`preview:${ip}`, 30, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
     const { searchParams } = new URL(request.url)
 
     const parseArray = (key: string): string[] => {

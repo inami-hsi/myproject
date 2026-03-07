@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST() {
   try {
@@ -12,6 +13,12 @@ export async function POST() {
         { error: 'Unauthorized' },
         { status: 401 }
       )
+    }
+
+    // Rate limit: 5 requests per minute per user
+    const rl = rateLimit(clerkUserId, 5, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     const supabase = createServiceRoleClient()

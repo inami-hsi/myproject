@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getPlanLimits } from '@/lib/plan-limits'
+import { rateLimit } from '@/lib/rate-limit'
 
 /**
  * GET /api/dashboard
@@ -17,6 +18,12 @@ export async function GET() {
     const { userId: clerkUserId } = await auth()
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 30 requests per minute per user
+    const rl = rateLimit(clerkUserId, 30, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     const supabase = createServiceRoleClient()

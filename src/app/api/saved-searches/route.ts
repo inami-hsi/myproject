@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getPlanLimits } from '@/lib/plan-limits'
+import { rateLimit } from '@/lib/rate-limit'
 import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,12 @@ export async function GET() {
     const { userId: clerkUserId } = await auth()
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 30 requests per minute per user
+    const rl = rateLimit(clerkUserId, 30, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     const supabase = createServiceRoleClient()
@@ -85,6 +92,12 @@ export async function POST(request: NextRequest) {
     const { userId: clerkUserId } = await auth()
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 10 requests per minute per user
+    const rl = rateLimit(`saved-search-post:${clerkUserId}`, 10, 60_000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
     // Parse & validate body
