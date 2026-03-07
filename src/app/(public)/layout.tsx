@@ -15,7 +15,7 @@ export default async function PublicLayout({ children }: { children: React.React
           >
             企業リスト
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 sm:gap-4">
             {userId ? (
               <>
                 <Link
@@ -26,7 +26,7 @@ export default async function PublicLayout({ children }: { children: React.React
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-9 items-center justify-center rounded-md bg-foreground px-4 font-heading text-sm font-medium text-background transition-colors duration-200 hover:bg-foreground/90"
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-foreground px-3 sm:px-4 font-heading text-sm font-medium text-background transition-colors duration-200 hover:bg-foreground/90"
                 >
                   ダッシュボード
                 </Link>
@@ -41,9 +41,9 @@ export default async function PublicLayout({ children }: { children: React.React
                 </Link>
                 <Link
                   href="/sign-up"
-                  className="inline-flex h-9 items-center justify-center rounded-md bg-foreground px-4 font-heading text-sm font-medium text-background transition-colors duration-200 hover:bg-foreground/90"
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-foreground px-3 sm:px-4 font-heading text-xs sm:text-sm font-medium text-background transition-colors duration-200 hover:bg-foreground/90"
                 >
-                  無料アカウント作成
+                  無料登録
                 </Link>
               </>
             )}
