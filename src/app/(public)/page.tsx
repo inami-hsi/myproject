@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Database, Filter, Download, ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "企業リスト - 企業情報検索・リスト作成ツール",
+  description:
+    "企業情報を簡単に検索・リスト化。業種・地域・従業員数などの条件で企業を絞り込み、CSV/Excelでダウンロード。",
+};
 
 export default function LandingPage() {
   return (
