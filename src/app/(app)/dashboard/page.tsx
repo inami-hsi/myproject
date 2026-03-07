@@ -94,6 +94,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -175,8 +176,8 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ── Upgrade CTA (free users) ──────────────── */}
-      {user.plan === 'free' && (
+      {/* ── Plan management ─────────────────────── */}
+      {user.plan === 'free' ? (
         <Card className="border-accent/30 bg-accent/5">
           <CardContent className="flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -188,6 +189,44 @@ export default function DashboardPage() {
             <Button asChild>
               <Link href="/pricing">プランをアップグレード</Link>
             </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">プラン管理</CardTitle>
+            <CardDescription>
+              現在のプラン: {PLAN_LABELS[user.plan]}（月額 {user.plan === 'starter' ? '¥2,980' : '¥9,800'}）
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              variant="outline"
+              disabled={portalLoading}
+              onClick={async () => {
+                setPortalLoading(true)
+                try {
+                  const res = await fetch('/api/billing/portal', { method: 'POST' })
+                  const data = await res.json()
+                  if (data.url) {
+                    window.location.href = data.url
+                  } else {
+                    alert(data.error || 'ポータルの作成に失敗しました')
+                  }
+                } catch {
+                  alert('ポータルの作成に失敗しました')
+                } finally {
+                  setPortalLoading(false)
+                }
+              }}
+            >
+              {portalLoading ? '読み込み中...' : 'プラン変更・解約'}
+            </Button>
+            {user.plan === 'starter' && (
+              <Button asChild variant="default">
+                <Link href="/pricing">Proプランにアップグレード</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
