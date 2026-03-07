@@ -3,9 +3,12 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TaskFlow",
+  title: {
+    default: "企業リスト - 企業情報検索・リスト作成ツール",
+    template: "%s | 企業リスト",
+  },
   description:
-    "Calm productivity task management with Gantt, Kanban, Calendar, and List views.",
+    "企業情報を簡単に検索・リスト化。業種・地域・従業員数などの条件で企業を絞り込み、CSV/Excelでダウンロード。",
   icons: {
     icon: "/favicon.svg",
   },
