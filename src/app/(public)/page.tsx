@@ -20,10 +20,10 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/search"
+              href="/sign-up"
               className="inline-flex h-12 items-center justify-center rounded-md bg-foreground px-8 font-heading text-sm font-semibold text-background transition-colors duration-200 hover:bg-foreground/90"
             >
-              無料で始める
+              無料アカウント作成
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
             <Link

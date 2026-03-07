@@ -173,11 +173,12 @@ export async function POST(request: NextRequest) {
       query = query.lte('employee_count', params.employee_max)
     }
 
-    // Keyword full-text search
+    // Keyword search: use ILIKE for Japanese text compatibility
     if (params.keyword) {
-      query = query.textSearch('search_vector', params.keyword, {
-        type: 'websearch',
-      })
+      const kw = `%${params.keyword}%`
+      query = query.or(
+        `name.ilike.${kw},name_kana.ilike.${kw},business_summary.ilike.${kw},representative_name.ilike.${kw},full_address.ilike.${kw}`
+      )
     }
 
     // Website filter

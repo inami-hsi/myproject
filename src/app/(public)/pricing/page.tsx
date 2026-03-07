@@ -66,19 +66,24 @@ function formatPrice(price: number): string {
   return `¥${price.toLocaleString("ja-JP")}`;
 }
 
-async function handleCheckout(priceId: string) {
+async function handleCheckout(plan: string) {
   try {
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({ plan }),
     });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || "チェックアウトの作成に失敗しました");
+      return;
+    }
     const data = await res.json();
     if (data.url) {
       window.location.href = data.url;
     }
   } catch {
-    // Checkout error handling would go here
+    alert("チェックアウトの作成に失敗しました");
   }
 }
 
