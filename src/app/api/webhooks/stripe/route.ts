@@ -46,12 +46,20 @@ export async function POST(request: NextRequest) {
         if (session.metadata?.type === 'evergreen_offer') {
           const evergreenSupabase = createUntypedServiceRoleClient()
           const registrationId = session.metadata.registration_id
+          const campaignId = session.metadata.campaign_id
 
           await evergreenSupabase
             .from('payments')
             .update({ status: 'succeeded', stripe_payment_id: session.payment_intent as string })
             .eq('registration_id', registrationId)
             .eq('stripe_payment_id', session.id)
+
+          // Send purchase confirmation email
+          try {
+            await sendEvergreenPurchaseEmail(evergreenSupabase, registrationId, campaignId)
+          } catch (err) {
+            console.error('Evergreen purchase email error:', err)
+          }
 
           console.log(`Evergreen payment succeeded: registration=${registrationId}`)
           break
@@ -188,4 +196,45 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true })
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendEvergreenPurchaseEmail(supabase: any, registrationId: string, campaignId: string) {
+  const { data: registration } = await supabase
+    .from('registrations')
+    .select('name, email')
+    .eq('id', registrationId)
+    .single()
+
+  if (!registration) return
+
+  const { data: campaign } = await supabase
+    .from('campaigns')
+    .select('name')
+    .eq('id', campaignId)
+    .single()
+
+  const { Resend } = await import('resend')
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) return
+
+  const resend = new Resend(apiKey)
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@heartline-inc.com'
+
+  await resend.emails.send({
+    from: fromEmail,
+    to: registration.email,
+    subject: `【購入完了】${campaign?.name || 'お申し込み'}ありがとうございます`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>${registration.name}様</h2>
+        <p>この度は${campaign?.name || 'コンテンツ'}をご購入いただき、誠にありがとうございます。</p>
+        <p>お支払いが正常に完了しました。</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+        <p style="color: #666; font-size: 14px;">
+          ご不明な点がございましたら、お気軽にお問い合わせください。
+        </p>
+      </div>
+    `,
+  })
 }
