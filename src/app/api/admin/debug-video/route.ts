@@ -36,7 +36,7 @@ export async function GET() {
       id: video.id,
       title: video.title,
       storage_url: video.storage_url,
-      signed_url: signedUrl ? signedUrl.substring(0, 150) + '...' : null,
+      signed_url: signedUrl,
       error,
     })
   }
