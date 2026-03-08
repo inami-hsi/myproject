@@ -79,9 +79,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Send confirmation email (async, don't block response)
-    sendConfirmationEmail(campaign.id, registration.id, email, name, session.starts_at).catch(
-      (err) => console.error('Confirmation email error:', err)
-    )
+    sendConfirmationEmail({
+      campaignId: campaign.id,
+      campaignSlug: campaign_slug,
+      registrationId: registration.id,
+      token: registration.token,
+      sessionId: session_id,
+      email,
+      name,
+      startsAt: session.starts_at,
+    }).catch((err) => console.error('Confirmation email error:', err))
 
     return NextResponse.json({
       success: true,
@@ -94,13 +101,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendConfirmationEmail(
-  campaignId: string,
-  registrationId: string,
-  email: string,
-  name: string,
+async function sendConfirmationEmail(params: {
+  campaignId: string
+  campaignSlug: string
+  registrationId: string
+  token: string
+  sessionId: string
+  email: string
+  name: string
   startsAt: string
-) {
+}) {
+  const { campaignId, campaignSlug, registrationId, token, sessionId, email, name, startsAt } = params
   const supabase = createServiceRoleClient()
 
   // Get confirmation template
@@ -118,6 +129,9 @@ async function sendConfirmationEmail(
   if (!apiKey) return
 
   const resend = new Resend(apiKey)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const watchUrl = `${baseUrl}/c/${campaignSlug}/watch/${sessionId}?token=${token}`
+
   const sessionDate = new Date(startsAt).toLocaleString('ja-JP', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
@@ -130,12 +144,13 @@ async function sendConfirmationEmail(
 
   // Replace placeholders in template
   const subject = template.subject
-    .replace('{{name}}', name)
-    .replace('{{session_date}}', sessionDate)
+    .replace(/\{\{name\}\}/g, name)
+    .replace(/\{\{session_date\}\}/g, sessionDate)
 
   const html = template.body_html
     .replace(/\{\{name\}\}/g, name)
     .replace(/\{\{session_date\}\}/g, sessionDate)
+    .replace(/\{\{watch_url\}\}/g, watchUrl)
 
   const { data: sendResult, error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL || 'noreply@heartline-inc.com',
