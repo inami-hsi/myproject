@@ -4,6 +4,8 @@ import type { GBizCompany } from '@/lib/gbizinfo/client'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { createSyncLog, updateSyncLog, batchUpsert } from '@/lib/sync/utils'
 
+export const dynamic = 'force-dynamic'
+
 // All 47 prefecture codes, zero-padded
 const PREFECTURES = Array.from({ length: 47 }, (_, i) =>
   String(i + 1).padStart(2, '0')

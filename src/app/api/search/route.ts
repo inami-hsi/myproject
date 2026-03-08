@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
