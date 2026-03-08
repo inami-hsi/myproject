@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { getStripe } from '@/lib/stripe'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const checkoutSchema = z.object({
   registration_id: z.string().uuid(),
   token: z.string().min(1),
