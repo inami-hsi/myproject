@@ -127,7 +127,16 @@ export async function createRegistration(params: {
     .eq('email', params.email)
     .single()
 
-  if (existing) return existing as Registration
+  if (existing) {
+    // Update name if it changed
+    if (existing.name !== params.name) {
+      await supabase
+        .from('registrations')
+        .update({ name: params.name })
+        .eq('id', existing.id)
+    }
+    return { ...existing, name: params.name } as Registration
+  }
 
   const { data, error } = await supabase
     .from('registrations')
