@@ -18,7 +18,6 @@ export default async function AnalyticsPage() {
     registrationsResult,
     viewEventsResult,
     emailLogsResult,
-    sessionsResult,
   ] = await Promise.all([
     supabase
       .from('registrations')
@@ -32,10 +31,6 @@ export default async function AnalyticsPage() {
       .from('email_logs')
       .select('id, status, sent_at')
       .in('status', ['sent', 'failed', 'bounced']),
-    supabase
-      .from('sessions')
-      .select('id, campaign_id, starts_at')
-      .in('campaign_id', campaignIds.length > 0 ? campaignIds : ['']),
   ])
 
   const registrations = registrationsResult.data ?? []
@@ -82,7 +77,6 @@ export default async function AnalyticsPage() {
 
   // Daily registration data (last 30 days)
   const now = new Date()
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const dailyData: { date: string; count: number }[] = []
 
   for (let i = 29; i >= 0; i--) {
