@@ -109,6 +109,36 @@ export async function getVideoSignedUrl(
 }
 
 /**
+ * Generate a presigned URL for direct upload to R2.
+ * Client uploads directly to R2, bypassing Vercel's 4.5MB body limit.
+ */
+export async function getUploadPresignedUrl(
+  filename: string,
+  contentType: string,
+  campaignId?: string
+): Promise<{ url: string; key: string; error: string | null }> {
+  const ext = filename.split('.').pop() ?? 'mp4'
+  const prefix = campaignId ? `videos/campaigns/${campaignId}` : 'videos/uploads'
+  const key = `${prefix}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
+
+  try {
+    const url = await getSignedUrl(
+      getR2Client(),
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ContentType: contentType,
+      }),
+      { expiresIn: 3600 }
+    )
+    return { url, key, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Presign failed'
+    return { url: '', key: '', error: message }
+  }
+}
+
+/**
  * Delete a file from R2.
  */
 export async function deleteVideo(storagePath: string): Promise<boolean> {

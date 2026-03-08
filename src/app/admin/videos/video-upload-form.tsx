@@ -6,12 +6,10 @@ import { useRouter } from 'next/navigation'
 export function VideoUploadForm() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const thumbnailInputRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
@@ -23,33 +21,63 @@ export function VideoUploadForm() {
 
     setIsUploading(true)
     setError('')
-    setProgress('アップロード中...')
 
     try {
-      const formData = new FormData()
-      formData.append('video', videoFile)
-      formData.append('title', title)
-      if (description) formData.append('description', description)
-      if (thumbnailFile) formData.append('thumbnail', thumbnailFile)
-
-      const res = await fetch('/api/admin/videos', {
+      // Step 1: Get presigned URL
+      setProgress('アップロードURL取得中...')
+      const presignRes = await fetch('/api/admin/videos', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'presign',
+          filename: videoFile.name,
+          contentType: videoFile.type,
+        }),
       })
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? 'アップロードに失敗しました')
+      if (!presignRes.ok) {
+        const data = await presignRes.json()
+        throw new Error(data.error ?? 'プリサインURL取得に失敗しました')
+      }
+
+      const { uploadUrl, storageKey } = await presignRes.json()
+
+      // Step 2: Upload directly to R2
+      setProgress(`アップロード中... (${formatFileSize(videoFile.size)})`)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': videoFile.type },
+        body: videoFile,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('R2へのアップロードに失敗しました')
+      }
+
+      // Step 3: Register in DB
+      setProgress('登録中...')
+      const registerRes = await fetch('/api/admin/videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          title,
+          description: description || undefined,
+          storageKey,
+        }),
+      })
+
+      if (!registerRes.ok) {
+        const data = await registerRes.json()
+        throw new Error(data.error ?? 'DB登録に失敗しました')
       }
 
       setProgress('完了!')
       setTitle('')
       setDescription('')
       setVideoFile(null)
-      setThumbnailFile(null)
       setIsExpanded(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      if (thumbnailInputRef.current) thumbnailInputRef.current.value = ''
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'アップロードに失敗しました')
@@ -131,7 +159,7 @@ export function VideoUploadForm() {
         </div>
 
         {/* Video File */}
-        <div>
+        <div className="sm:col-span-2">
           <label htmlFor="video-file" className="mb-1 block text-sm font-medium text-eg-text-primary">
             動画ファイル * (MP4/WebM, 500MB以下)
           </label>
@@ -149,21 +177,6 @@ export function VideoUploadForm() {
               {videoFile.name} ({formatFileSize(videoFile.size)})
             </p>
           )}
-        </div>
-
-        {/* Thumbnail */}
-        <div>
-          <label htmlFor="video-thumb" className="mb-1 block text-sm font-medium text-eg-text-primary">
-            サムネイル (JPG/PNG, 任意)
-          </label>
-          <input
-            ref={thumbnailInputRef}
-            id="video-thumb"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-eg-accent/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-eg-accent"
-          />
         </div>
       </div>
 
