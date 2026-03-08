@@ -199,9 +199,7 @@ export async function getWatchPageData(
       .single()
     if (data) {
       // Generate signed URL for video playback
-      console.log('Video storage_url from DB:', data.storage_url)
       const signedUrl = await getVideoSignedUrl(data.storage_url)
-      console.log('Generated signed URL:', signedUrl ? signedUrl.substring(0, 100) + '...' : 'null')
       video = { ...data, storage_url: signedUrl ?? data.storage_url }
     }
   }
