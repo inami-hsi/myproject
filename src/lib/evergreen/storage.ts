@@ -3,6 +3,8 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  PutBucketCorsCommand,
+  GetBucketCorsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
@@ -153,5 +155,45 @@ export async function deleteVideo(storagePath: string): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+/**
+ * Configure CORS on R2 bucket for direct browser uploads.
+ */
+export async function configureBucketCors(allowedOrigin: string): Promise<{ success: boolean; error: string | null }> {
+  try {
+    await getR2Client().send(
+      new PutBucketCorsCommand({
+        Bucket: R2_BUCKET,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedOrigins: [allowedOrigin],
+              AllowedMethods: ['PUT', 'GET'],
+              AllowedHeaders: ['Content-Type'],
+              MaxAgeSeconds: 3600,
+            },
+          ],
+        },
+      })
+    )
+    return { success: true, error: null }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'CORS config failed' }
+  }
+}
+
+/**
+ * Get current CORS configuration.
+ */
+export async function getBucketCors(): Promise<{ rules: unknown; error: string | null }> {
+  try {
+    const result = await getR2Client().send(
+      new GetBucketCorsCommand({ Bucket: R2_BUCKET })
+    )
+    return { rules: result.CORSRules, error: null }
+  } catch (err) {
+    return { rules: null, error: err instanceof Error ? err.message : 'Failed to get CORS' }
   }
 }
