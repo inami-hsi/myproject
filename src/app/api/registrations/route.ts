@@ -123,10 +123,16 @@ async function sendConfirmationEmail(params: {
     .eq('is_active', true)
     .single()
 
-  if (!template) return
+  if (!template) {
+    console.error('Confirmation email: template not found for campaign', campaignId)
+    return
+  }
 
   const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return
+  if (!apiKey) {
+    console.error('Confirmation email: RESEND_API_KEY not set')
+    return
+  }
 
   const resend = new Resend(apiKey)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
