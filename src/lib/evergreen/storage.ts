@@ -1,124 +1,126 @@
-import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-const BUCKET_NAME = 'evergreen-videos'
-const THUMBNAIL_BUCKET = 'evergreen-thumbnails'
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID!
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!
+const R2_BUCKET = process.env.R2_BUCKET || 'evergreen'
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || ''
 
-/**
- * Ensure the storage buckets exist.
- * Called once on first upload.
- */
-export async function ensureBuckets() {
-  const supabase = createServiceRoleClient()
-
-  const { data: buckets } = await supabase.storage.listBuckets()
-  const bucketNames = (buckets ?? []).map((b) => b.name)
-
-  if (!bucketNames.includes(BUCKET_NAME)) {
-    await supabase.storage.createBucket(BUCKET_NAME, {
-      public: false,
-      fileSizeLimit: 50 * 1024 * 1024, // 50MB
-      allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
-    })
-  }
-
-  if (!bucketNames.includes(THUMBNAIL_BUCKET)) {
-    await supabase.storage.createBucket(THUMBNAIL_BUCKET, {
-      public: true,
-      fileSizeLimit: 5 * 1024 * 1024, // 5MB
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    })
-  }
+function getR2Client() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  })
 }
 
 /**
- * Upload a video file to Supabase Storage.
- * Returns the storage path (not the full URL).
+ * Upload a video file to R2.
+ * Returns the storage path (key).
  */
 export async function uploadVideo(
   file: File,
   campaignId?: string
 ): Promise<{ path: string; error: string | null }> {
-  const supabase = createServiceRoleClient()
-  await ensureBuckets()
-
   const ext = file.name.split('.').pop() ?? 'mp4'
-  const prefix = campaignId ? `campaigns/${campaignId}` : 'uploads'
-  const path = `${prefix}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
+  const prefix = campaignId ? `videos/campaigns/${campaignId}` : 'videos/uploads'
+  const key = `${prefix}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
 
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    })
-
-  if (error) {
-    return { path: '', error: error.message }
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      })
+    )
+    return { path: key, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upload failed'
+    return { path: '', error: message }
   }
-
-  return { path, error: null }
 }
 
 /**
- * Upload a thumbnail image.
+ * Upload a thumbnail image to R2.
  * Returns the public URL.
  */
 export async function uploadThumbnail(
   file: File
 ): Promise<{ url: string; error: string | null }> {
-  const supabase = createServiceRoleClient()
-  await ensureBuckets()
-
   const ext = file.name.split('.').pop() ?? 'jpg'
-  const path = `thumbnails/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
+  const key = `thumbnails/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
 
-  const { error } = await supabase.storage
-    .from(THUMBNAIL_BUCKET)
-    .upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    })
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      })
+    )
 
-  if (error) {
-    return { url: '', error: error.message }
+    // Thumbnails are served via R2 public URL or signed URL
+    const url = R2_PUBLIC_URL
+      ? `${R2_PUBLIC_URL}/${key}`
+      : await getVideoSignedUrl(key, 86400 * 365) ?? ''
+
+    return { url, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upload failed'
+    return { url: '', error: message }
   }
-
-  const { data } = supabase.storage
-    .from(THUMBNAIL_BUCKET)
-    .getPublicUrl(path)
-
-  return { url: data.publicUrl, error: null }
 }
 
 /**
- * Get a signed URL for a video (time-limited access).
+ * Get a signed URL for a file (time-limited access).
  */
 export async function getVideoSignedUrl(
   storagePath: string,
   expiresInSeconds: number = 3600
 ): Promise<string | null> {
-  const supabase = createServiceRoleClient()
-
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(storagePath, expiresInSeconds)
-
-  if (error) {
-    console.error('Signed URL error:', error)
+  try {
+    const url = await getSignedUrl(
+      getR2Client(),
+      new GetObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: storagePath,
+      }),
+      { expiresIn: expiresInSeconds }
+    )
+    return url
+  } catch (err) {
+    console.error('Signed URL error:', err)
     return null
   }
-
-  return data.signedUrl
 }
 
 /**
- * Delete a video from storage.
+ * Delete a file from R2.
  */
 export async function deleteVideo(storagePath: string): Promise<boolean> {
-  const supabase = createServiceRoleClient()
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .remove([storagePath])
-
-  return !error
+  try {
+    await getR2Client().send(
+      new DeleteObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: storagePath,
+      })
+    )
+    return true
+  } catch {
+    return false
+  }
 }
