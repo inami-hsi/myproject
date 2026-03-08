@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 const FROM = '企業リスト <noreply@resend.dev>'
 const APP_NAME = '企業リスト'
@@ -13,7 +15,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://company-list-builder
 async function send(to: string, subject: string, html: string) {
   if (!process.env.RESEND_API_KEY) return
   try {
-    await resend.emails.send({ from: FROM, to, subject, html })
+    await getResend().emails.send({ from: FROM, to, subject, html })
   } catch (error) {
     console.error('[email] Failed to send:', { to, subject, error })
   }
