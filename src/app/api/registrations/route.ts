@@ -78,17 +78,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '登録に失敗しました' }, { status: 500 })
     }
 
-    // Send confirmation email (async, don't block response)
-    sendConfirmationEmail({
-      campaignId: campaign.id,
-      campaignSlug: campaign_slug,
-      registrationId: registration.id,
-      token: registration.token,
-      sessionId: session_id,
-      email,
-      name,
-      startsAt: session.starts_at,
-    }).catch((err) => console.error('Confirmation email error:', err))
+    // Send confirmation email before returning response
+    // (must await on Vercel - serverless functions terminate after response)
+    try {
+      await sendConfirmationEmail({
+        campaignId: campaign.id,
+        campaignSlug: campaign_slug,
+        registrationId: registration.id,
+        token: registration.token,
+        sessionId: session_id,
+        email,
+        name,
+        startsAt: session.starts_at,
+      })
+    } catch (err) {
+      console.error('Confirmation email error:', err)
+    }
 
     return NextResponse.json({
       success: true,
