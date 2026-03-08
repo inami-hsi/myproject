@@ -42,6 +42,23 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Evergreen Launch colors
+        eg: {
+          primary: "#1a1a2e",
+          secondary: "#16213e",
+          accent: "#e94560",
+          gold: "#f5c518",
+          bg: {
+            light: "#fafafa",
+            dark: "#0f0f23",
+          },
+          text: {
+            primary: "#1a1a2e",
+            secondary: "#6b7280",
+          },
+          success: "#10b981",
+          error: "#ef4444",
+        },
         // TaskFlow custom colors
         terracotta: "#e07a5f",
         sage: "#6d8b74",
@@ -71,6 +88,10 @@ const config: Config = {
         heading: ["DM Sans", "sans-serif"],
         body: ["Source Serif 4", "Georgia", "serif"],
         mono: ["JetBrains Mono", "monospace"],
+        // Evergreen Launch fonts
+        "eg-display": ["Playfair Display", "Georgia", "serif"],
+        "eg-heading": ["Poppins", "sans-serif"],
+        "eg-body": ["Noto Sans JP", "Source Sans Pro", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

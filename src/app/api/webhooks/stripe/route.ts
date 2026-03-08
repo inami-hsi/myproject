@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { createUntypedServiceRoleClient } from '@/lib/supabase/server'
 import { getStripe, getPlanFromPriceId } from '@/lib/stripe'
 import { sendPlanChanged } from '@/lib/email'
 import type Stripe from 'stripe'
@@ -38,6 +39,22 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+
+        // Handle evergreen offer payments
+        if (session.metadata?.type === 'evergreen_offer') {
+          const evergreenSupabase = createUntypedServiceRoleClient()
+          const registrationId = session.metadata.registration_id
+
+          await evergreenSupabase
+            .from('payments')
+            .update({ status: 'succeeded', stripe_payment_id: session.payment_intent as string })
+            .eq('registration_id', registrationId)
+            .eq('stripe_payment_id', session.id)
+
+          console.log(`Evergreen payment succeeded: registration=${registrationId}`)
+          break
+        }
+
         const clerkUserId = session.metadata?.clerk_user_id
         const plan = session.metadata?.plan as 'starter' | 'pro' | undefined
 
