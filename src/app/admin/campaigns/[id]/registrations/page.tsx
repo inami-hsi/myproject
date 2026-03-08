@@ -46,9 +46,19 @@ export default async function RegistrationsPage({ params }: Props) {
       <h1 className="mt-1 font-eg-heading text-2xl font-bold text-eg-primary">
         登録者一覧
       </h1>
-      <p className="mt-1 text-sm text-eg-text-secondary">
-        {(registrations ?? []).length}人の登録者
-      </p>
+      <div className="mt-1 flex items-center gap-4">
+        <p className="text-sm text-eg-text-secondary">
+          {(registrations ?? []).length}人の登録者
+        </p>
+        {(registrations ?? []).length > 0 && (
+          <a
+            href={`/api/admin/campaigns/${id}/registrations/export`}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-eg-text-secondary hover:bg-gray-50"
+          >
+            CSVエクスポート
+          </a>
+        )}
+      </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div className="overflow-x-auto">
