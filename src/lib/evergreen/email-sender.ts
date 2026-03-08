@@ -191,9 +191,10 @@ async function findPendingRecipients(
       if (count && count > 0) continue
     }
 
-    // Check timing window (send within 10 minutes of target time)
+    // Check timing window: send if target time has passed but not more than 24 hours ago
+    // This ensures emails are sent even with infrequent cron runs (e.g., once daily)
     const diff = now.getTime() - sendTime.getTime()
-    if (diff >= 0 && diff < 10 * 60 * 1000) {
+    if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
       pending.push({
         registration: { id: reg.id, name: reg.name, email: reg.email, token: reg.token },
         template: {

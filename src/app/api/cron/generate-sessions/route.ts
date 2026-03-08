@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
         .eq('campaign_id', campaign.id)
         .gt('starts_at', new Date().toISOString())
 
-      const existingTimes = new Set(
-        (existing ?? []).map((s) => new Date(s.starts_at).getTime())
+      const existingKeys = new Set(
+        (existing ?? []).map((s) => new Date(s.starts_at).toISOString().slice(0, 16))
       )
 
       const toInsert = upcomingDates
-        .filter((d) => !existingTimes.has(d.getTime()))
+        .filter((d) => !existingKeys.has(d.toISOString().slice(0, 16)))
         .map((d) => ({
           campaign_id: campaign.id,
           starts_at: d.toISOString(),
