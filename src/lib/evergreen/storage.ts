@@ -16,7 +16,7 @@ export async function ensureBuckets() {
   if (!bucketNames.includes(BUCKET_NAME)) {
     await supabase.storage.createBucket(BUCKET_NAME, {
       public: false,
-      fileSizeLimit: 500 * 1024 * 1024, // 500MB
+      fileSizeLimit: 50 * 1024 * 1024, // 50MB
       allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
     })
   }
