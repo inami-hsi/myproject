@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const createCampaignSchema = z.object({
   name: z.string().min(1).max(200),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),

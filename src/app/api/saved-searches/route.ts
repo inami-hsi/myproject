@@ -6,6 +6,8 @@ import { getPlanLimits } from '@/lib/plan-limits'
 import { rateLimit } from '@/lib/rate-limit'
 import type { Json } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------

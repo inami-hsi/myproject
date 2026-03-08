@@ -8,6 +8,8 @@ import { rateLimit } from '@/lib/rate-limit'
 import { sendDownloadComplete, sendUsageAlert } from '@/lib/email'
 import type { Json } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------

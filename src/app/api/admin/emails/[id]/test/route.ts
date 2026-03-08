@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { Resend } from 'resend'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const testSchema = z.object({
   to: z.string().email(),
 })

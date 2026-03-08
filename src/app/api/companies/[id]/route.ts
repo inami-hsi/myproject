@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getPlanLimits } from '@/lib/plan-limits'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Basic fields (available to all plans)
 // ---------------------------------------------------------------------------

@@ -4,6 +4,8 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
 import { rateLimit } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     const { userId: clerkUserId } = await auth()

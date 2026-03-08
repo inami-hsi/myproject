@@ -5,6 +5,8 @@ import { getStripe, PRICE_IDS } from '@/lib/stripe'
 import { rateLimit } from '@/lib/rate-limit'
 import type Stripe from 'stripe'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth()

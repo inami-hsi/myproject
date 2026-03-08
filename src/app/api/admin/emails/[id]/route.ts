@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const updateSchema = z.object({
   subject: z.string().min(1).max(500).optional(),
   body_html: z.string().min(1).optional(),

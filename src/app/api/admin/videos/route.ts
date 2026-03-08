@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { uploadVideo, uploadThumbnail } from '@/lib/evergreen/storage'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const { userId } = await auth()
   if (!userId) {

@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import type { Json } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
