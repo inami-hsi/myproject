@@ -2,7 +2,9 @@ import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib
 import { Resend } from 'resend'
 import type { EmailTriggerType } from '@/types/evergreen'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@aidreams-factory.com'
 
 interface PendingEmail {
@@ -89,7 +91,7 @@ export async function processPendingEmails(): Promise<{
           .replace(/\{\{watch_url\}\}/g, watchUrl)
           .replace(/\{\{campaign_name\}\}/g, pending.campaign.name)
 
-        const { data, error } = await resend.emails.send({
+        const { data, error } = await getResend().emails.send({
           from: FROM_EMAIL,
           to: pending.registration.email,
           subject,
