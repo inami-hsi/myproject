@@ -5,7 +5,7 @@ import type { EmailTriggerType } from '@/types/evergreen'
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@aidreams-factory.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 
 interface PendingEmail {
   registration: {

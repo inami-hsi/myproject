@@ -85,13 +85,14 @@ async function ensureUpcomingSessions(campaign: Campaign): Promise<void> {
     .eq('campaign_id', campaign.id)
     .gt('starts_at', new Date().toISOString())
 
-  const existingTimes = new Set(
-    (existing ?? []).map((s) => new Date(s.starts_at).getTime())
+  // Compare by ISO string (minute precision) to avoid millisecond mismatches
+  const existingKeys = new Set(
+    (existing ?? []).map((s) => new Date(s.starts_at).toISOString().slice(0, 16))
   )
 
   // Insert missing sessions
   const toInsert = upcomingDates
-    .filter((d) => !existingTimes.has(d.getTime()))
+    .filter((d) => !existingKeys.has(d.toISOString().slice(0, 16)))
     .map((d) => ({
       campaign_id: campaign.id,
       starts_at: d.toISOString(),

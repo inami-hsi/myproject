@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { AnalyticsCharts } from './analytics-charts'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AnalyticsPage() {
   const supabase = createServiceRoleClient()
 

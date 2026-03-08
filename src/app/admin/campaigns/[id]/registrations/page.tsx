@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ id: string }>
 }

@@ -1,6 +1,8 @@
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { CampaignForm } from '../campaign-form'
 
+export const dynamic = 'force-dynamic'
+
 export default async function NewCampaignPage() {
   const supabase = createServiceRoleClient()
 

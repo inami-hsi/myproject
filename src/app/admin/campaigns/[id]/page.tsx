@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { CampaignForm } from '../campaign-form'
 import { DuplicateButton } from './duplicate-button'
+
+export const dynamic = 'force-dynamic'
 import type { Campaign } from '@/types/evergreen'
 
 interface Props {

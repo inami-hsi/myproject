@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { EmailTemplateEditor } from './email-template-editor'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ id: string }>
 }

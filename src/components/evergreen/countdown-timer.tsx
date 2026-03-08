@@ -10,9 +10,10 @@ interface CountdownTimerProps {
 }
 
 export function CountdownTimer({ targetDate, onComplete, size = 'lg' }: CountdownTimerProps) {
-  const [time, setTime] = useState(getTimeRemaining(targetDate))
+  const [time, setTime] = useState<ReturnType<typeof getTimeRemaining> | null>(null)
 
   useEffect(() => {
+    setTime(getTimeRemaining(targetDate))
     const interval = setInterval(() => {
       const remaining = getTimeRemaining(targetDate)
       setTime(remaining)
@@ -25,7 +26,7 @@ export function CountdownTimer({ targetDate, onComplete, size = 'lg' }: Countdow
     return () => clearInterval(interval)
   }, [targetDate, onComplete])
 
-  if (time.isStarted) return null
+  if (!time || time.isStarted) return null
 
   const units = time.days > 0
     ? [
