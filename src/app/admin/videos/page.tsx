@@ -57,6 +57,17 @@ export default async function VideosPage() {
                   {video.description}
                 </p>
               )}
+              {/* Video ID & Storage Key */}
+              <div className="mt-2 space-y-1">
+                <p className="break-all text-xs text-eg-text-secondary">
+                  <span className="font-medium text-eg-primary">ID:</span> {video.id}
+                </p>
+                {video.storage_url && (
+                  <p className="break-all text-xs text-eg-text-secondary">
+                    <span className="font-medium text-eg-primary">R2:</span> {video.storage_url}
+                  </p>
+                )}
+              </div>
               <div className="mt-3 flex items-center justify-between text-xs text-eg-text-secondary">
                 <span>
                   {video.duration_seconds
