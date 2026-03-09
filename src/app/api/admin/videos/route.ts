@@ -79,6 +79,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(video, { status: 201 })
     }
 
+    if (action === 'delete') {
+      const { videoId } = body
+      if (!videoId) {
+        return NextResponse.json({ error: 'videoId required' }, { status: 400 })
+      }
+
+      const supabase = createServiceRoleClient()
+
+      // Get video to find storage key
+      const { data: video } = await supabase
+        .from('videos')
+        .select('id, storage_url')
+        .eq('id', videoId)
+        .single()
+
+      if (!video) {
+        return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+      }
+
+      // Delete from R2
+      if (video.storage_url) {
+        const { deleteVideo } = await import('@/lib/evergreen/storage')
+        await deleteVideo(video.storage_url)
+      }
+
+      // Delete from DB
+      const { error: dbError } = await supabase
+        .from('videos')
+        .delete()
+        .eq('id', videoId)
+
+      if (dbError) {
+        return NextResponse.json({ error: dbError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (err) {
     console.error('Video API error:', err)

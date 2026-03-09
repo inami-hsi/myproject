@@ -1,5 +1,6 @@
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
 import { VideoUploadForm } from './video-upload-form'
+import { VideoDeleteButton } from './video-delete-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,9 +73,12 @@ export default async function VideosPage() {
                   {video.is_public ? '公開' : '非公開'}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-eg-text-secondary">
-                {new Date(video.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
-              </p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-xs text-eg-text-secondary">
+                  {new Date(video.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+                </p>
+                <VideoDeleteButton videoId={video.id} videoTitle={video.title} />
+              </div>
             </div>
           </div>
         ))}
