@@ -23,18 +23,48 @@ export default async function CampaignDetailPage({ params }: Props) {
 
   if (error || !campaign) notFound()
 
-  const [videosResult, registrationsResult, emailTemplatesResult] = await Promise.all([
+  const [videosResult, registrationsResult, emailTemplatesResult, paymentsResult] = await Promise.all([
     supabase.from('videos').select('id, title').order('created_at', { ascending: false }),
     supabase
       .from('registrations')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('campaign_id', id),
     supabase
       .from('email_templates')
       .select('id, trigger_type, subject, is_active')
       .eq('campaign_id', id)
       .order('delay_minutes', { ascending: true }),
+    supabase
+      .from('payments')
+      .select('registration_id, amount')
+      .eq('campaign_id', id)
+      .eq('status', 'succeeded'),
   ])
+
+  const regIds = (registrationsResult.data ?? []).map((r) => r.id)
+  const totalRegistrations = regIds.length
+  const totalPurchases = (paymentsResult.data ?? []).length
+  const totalRevenue = (paymentsResult.data ?? []).reduce((sum, p) => sum + (p.amount ?? 0), 0)
+
+  // Get view stats
+  let totalViewed = 0
+  let totalCompleted = 0
+  if (regIds.length > 0) {
+    const [viewedResult, completedResult] = await Promise.all([
+      supabase
+        .from('view_events')
+        .select('registration_id')
+        .in('registration_id', regIds)
+        .eq('event_type', 'play'),
+      supabase
+        .from('view_events')
+        .select('registration_id')
+        .in('registration_id', regIds)
+        .eq('event_type', 'complete'),
+    ])
+    totalViewed = new Set((viewedResult.data ?? []).map((v) => v.registration_id)).size
+    totalCompleted = new Set((completedResult.data ?? []).map((c) => c.registration_id)).size
+  }
 
   const triggerLabels: Record<string, string> = {
     confirmation: '登録確認',
@@ -72,8 +102,44 @@ export default async function CampaignDetailPage({ params }: Props) {
             href={`/admin/campaigns/${id}/registrations`}
             className="text-sm text-eg-accent hover:text-eg-accent/80"
           >
-            登録者: {registrationsResult.count ?? 0}人 &rarr;
+            登録者: {totalRegistrations}人 &rarr;
           </Link>
+        </div>
+      </div>
+
+      {/* Analytics Funnel */}
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6">
+        <h2 className="font-eg-heading text-lg font-semibold text-eg-primary">ファネル分析</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-5">
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
+            <p className="text-2xl font-bold text-eg-primary">{totalRegistrations}</p>
+            <p className="mt-1 text-xs text-eg-text-secondary">登録</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
+            <p className="text-2xl font-bold text-eg-primary">{totalViewed}</p>
+            <p className="mt-1 text-xs text-eg-text-secondary">視聴開始</p>
+            {totalRegistrations > 0 && (
+              <p className="text-xs text-eg-accent">{Math.round((totalViewed / totalRegistrations) * 100)}%</p>
+            )}
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
+            <p className="text-2xl font-bold text-eg-primary">{totalCompleted}</p>
+            <p className="mt-1 text-xs text-eg-text-secondary">視聴完了</p>
+            {totalViewed > 0 && (
+              <p className="text-xs text-eg-accent">{Math.round((totalCompleted / totalViewed) * 100)}%</p>
+            )}
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
+            <p className="text-2xl font-bold text-eg-primary">{totalPurchases}</p>
+            <p className="mt-1 text-xs text-eg-text-secondary">購入</p>
+            {totalCompleted > 0 && (
+              <p className="text-xs text-eg-accent">{Math.round((totalPurchases / totalCompleted) * 100)}%</p>
+            )}
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4 text-center">
+            <p className="text-2xl font-bold text-eg-primary">{totalRevenue.toLocaleString()}</p>
+            <p className="mt-1 text-xs text-eg-text-secondary">売上 (円)</p>
+          </div>
         </div>
       </div>
 

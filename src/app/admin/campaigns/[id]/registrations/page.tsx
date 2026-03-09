@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createUntypedServiceRoleClient as createServiceRoleClient } from '@/lib/supabase/server'
+import { CleanupButton } from './cleanup-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,18 +27,27 @@ export default async function RegistrationsPage({ params }: Props) {
     .eq('campaign_id', id)
     .order('registered_at', { ascending: false })
 
-  // Get view completion status for each registration
+  // Get view completion and purchase status for each registration
   const regIds = (registrations ?? []).map((r) => r.id)
   let completedSet = new Set<string>()
+  let purchasedSet = new Set<string>()
 
   if (regIds.length > 0) {
-    const { data: completions } = await supabase
-      .from('view_events')
-      .select('registration_id')
-      .in('registration_id', regIds)
-      .eq('event_type', 'complete')
+    const [completionsResult, paymentsResult] = await Promise.all([
+      supabase
+        .from('view_events')
+        .select('registration_id')
+        .in('registration_id', regIds)
+        .eq('event_type', 'complete'),
+      supabase
+        .from('payments')
+        .select('registration_id')
+        .in('registration_id', regIds)
+        .eq('status', 'succeeded'),
+    ])
 
-    completedSet = new Set((completions ?? []).map((c) => c.registration_id))
+    completedSet = new Set((completionsResult.data ?? []).map((c) => c.registration_id))
+    purchasedSet = new Set((paymentsResult.data ?? []).map((p) => p.registration_id))
   }
 
   return (
@@ -53,12 +63,15 @@ export default async function RegistrationsPage({ params }: Props) {
           {(registrations ?? []).length}人の登録者
         </p>
         {(registrations ?? []).length > 0 && (
-          <a
-            href={`/api/admin/campaigns/${id}/registrations/export`}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-eg-text-secondary hover:bg-gray-50"
-          >
-            CSVエクスポート
-          </a>
+          <>
+            <a
+              href={`/api/admin/campaigns/${id}/registrations/export`}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-eg-text-secondary hover:bg-gray-50"
+            >
+              CSVエクスポート
+            </a>
+            <CleanupButton campaignId={id} />
+          </>
         )}
       </div>
 
@@ -71,6 +84,7 @@ export default async function RegistrationsPage({ params }: Props) {
                 <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">メール</th>
                 <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">セッション日時</th>
                 <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">視聴</th>
+                <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">購入</th>
                 <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">UTM</th>
                 <th className="px-4 py-3 text-left font-medium text-eg-text-secondary">登録日時</th>
               </tr>
@@ -80,6 +94,7 @@ export default async function RegistrationsPage({ params }: Props) {
                 const sessionArr = reg.sessions as unknown as { starts_at: string }[] | null
                 const session = sessionArr?.[0]
                 const isCompleted = completedSet.has(reg.id)
+                const isPurchased = purchasedSet.has(reg.id)
 
                 return (
                   <tr key={reg.id} className="border-b border-gray-50">
@@ -107,6 +122,17 @@ export default async function RegistrationsPage({ params }: Props) {
                         {isCompleted ? '完了' : '未視聴'}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          isPurchased
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'bg-gray-100 text-eg-text-secondary'
+                        }`}
+                      >
+                        {isPurchased ? '購入済' : '-'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-xs text-eg-text-secondary">
                       {[reg.utm_source, reg.utm_medium, reg.utm_campaign].filter(Boolean).join(' / ') || '-'}
                     </td>
@@ -124,7 +150,7 @@ export default async function RegistrationsPage({ params }: Props) {
               })}
               {(registrations ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-eg-text-secondary">
+                  <td colSpan={7} className="px-4 py-12 text-center text-eg-text-secondary">
                     まだ登録者がいません
                   </td>
                 </tr>
