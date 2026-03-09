@@ -29,29 +29,46 @@ export async function GET(request: NextRequest) {
       const rules = campaign.session_rules as SessionRules
       const upcomingDates = generateUpcomingSessions(rules)
 
-      // Check existing future sessions
+      // Check ALL existing sessions for this campaign (not just future)
+      // to prevent duplicates even across cron runs
       const { data: existing } = await supabase
         .from('sessions')
         .select('starts_at')
         .eq('campaign_id', campaign.id)
-        .gt('starts_at', new Date().toISOString())
 
+      // Use date string truncated to minute for dedup key
+      // Round to nearest minute to handle millisecond differences
       const existingKeys = new Set(
-        (existing ?? []).map((s) => new Date(s.starts_at).toISOString().slice(0, 16))
+        (existing ?? []).map((s) => {
+          const d = new Date(s.starts_at)
+          d.setSeconds(0, 0)
+          return `${campaign.id}_${d.toISOString()}`
+        })
       )
 
       const toInsert = upcomingDates
-        .filter((d) => !existingKeys.has(d.toISOString().slice(0, 16)))
-        .map((d) => ({
-          campaign_id: campaign.id,
-          starts_at: d.toISOString(),
-          max_seats: rules.max_seats,
-          is_generated: true,
-        }))
+        .filter((d) => {
+          const rounded = new Date(d)
+          rounded.setSeconds(0, 0)
+          return !existingKeys.has(`${campaign.id}_${rounded.toISOString()}`)
+        })
+        .map((d) => {
+          const rounded = new Date(d)
+          rounded.setSeconds(0, 0)
+          return {
+            campaign_id: campaign.id,
+            starts_at: rounded.toISOString(),
+            max_seats: rules.max_seats,
+            is_generated: true,
+          }
+        })
 
       if (toInsert.length > 0) {
-        await supabase.from('sessions').insert(toInsert)
-        created += toInsert.length
+        // Insert one by one to skip duplicates gracefully
+        for (const session of toInsert) {
+          const { error } = await supabase.from('sessions').insert(session)
+          if (!error) created++
+        }
       }
     }
 
