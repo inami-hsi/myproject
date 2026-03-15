@@ -201,14 +201,24 @@ export async function POST(request: NextRequest) {
 // ─────────────────────────────────────────────────────────
 
 /**
- * For each company, look up its business_items_summary codes in gbiz_industry_mapping
- * and upsert into company_industry_mapping. Log unmapped industries.
+ * Batch-process industry mappings for all companies in a page.
+ *
+ * Collects all EDA codes and corporate_numbers upfront, then resolves
+ * mappings and company IDs in bulk (4 queries per page instead of ~3N).
  */
 async function processIndustryMappings(
   supabase: ReturnType<typeof createServiceRoleClient>,
   companies: GBizCompany[],
   result: PrefectureResult
 ) {
+  // ── 1. Collect all unique EDA codes and corporate_numbers ──
+  const allEdaCodes = new Set<string>()
+  const companiesWithCodes: {
+    corporateNumber: string
+    edaCodes: string[]
+    businessItems: string | null
+  }[] = []
+
   for (const company of companies) {
     const edaCodes = (company.business_items_summary || [])
       .map((s) => s.business_items_code)
@@ -216,67 +226,106 @@ async function processIndustryMappings(
 
     if (edaCodes.length === 0) continue
 
-    // Look up all EDA codes in the mapping table
-    const { data: mappings } = await supabase
-      .from('gbiz_industry_mapping')
-      .select('eda_code, jsic_code, confidence')
-      .in('eda_code', edaCodes)
+    edaCodes.forEach((code) => allEdaCodes.add(code))
+    companiesWithCodes.push({
+      corporateNumber: company.corporate_number,
+      edaCodes,
+      businessItems: company.business_items || null,
+    })
+  }
 
-    const mappedEdaCodes = new Set((mappings || []).map((m) => m.eda_code))
+  if (companiesWithCodes.length === 0) return
 
-    // Resolve company_id from corporate_number
-    const { data: companyRow } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('corporate_number', company.corporate_number)
-      .single()
+  // ── 2. Bulk fetch: EDA → JSIC mappings ─────────────────────
+  const edaCodesArray = Array.from(allEdaCodes)
+  const { data: allMappings } = await supabase
+    .from('gbiz_industry_mapping')
+    .select('eda_code, jsic_code, confidence')
+    .in('eda_code', edaCodesArray)
 
-    if (!companyRow) continue
+  const mappingsByEda = new Map<string, { jsic_code: string; confidence: number }[]>()
+  for (const m of allMappings || []) {
+    const list = mappingsByEda.get(m.eda_code) || []
+    list.push({ jsic_code: m.jsic_code, confidence: m.confidence })
+    mappingsByEda.set(m.eda_code, list)
+  }
 
-    // Upsert mapped industries
-    if (mappings && mappings.length > 0) {
-      const industryRecords = mappings.map((m) => ({
-        company_id: companyRow.id,
-        jsic_code: m.jsic_code,
-        source: 'gbizinfo' as const,
-        confidence: m.confidence,
-      }))
+  // ── 3. Bulk fetch: corporate_number → company ID ───────────
+  const corporateNumbers = companiesWithCodes.map((c) => c.corporateNumber)
+  const { data: companyRows } = await supabase
+    .from('companies')
+    .select('id, corporate_number')
+    .in('corporate_number', corporateNumbers)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('company_industry_mapping') as any)
-        .upsert(industryRecords, {
-          onConflict: 'company_id,jsic_code',
+  const idByCorporateNumber = new Map<string, string>()
+  for (const row of companyRows || []) {
+    idByCorporateNumber.set(row.corporate_number, row.id)
+  }
+
+  // ── 4. Build batch records ─────────────────────────────────
+  const industryRecords: {
+    company_id: string
+    jsic_code: string
+    source: 'gbizinfo'
+    confidence: number
+  }[] = []
+  const unmappedRecords: {
+    eda_code: string
+    business_items: string | null
+    corporate_number: string
+  }[] = []
+
+  for (const entry of companiesWithCodes) {
+    const companyId = idByCorporateNumber.get(entry.corporateNumber)
+    if (!companyId) continue
+
+    for (const edaCode of entry.edaCodes) {
+      const jsicMappings = mappingsByEda.get(edaCode)
+      if (jsicMappings) {
+        for (const m of jsicMappings) {
+          industryRecords.push({
+            company_id: companyId,
+            jsic_code: m.jsic_code,
+            source: 'gbizinfo',
+            confidence: m.confidence,
+          })
+        }
+      } else {
+        unmappedRecords.push({
+          eda_code: edaCode,
+          business_items: entry.businessItems,
+          corporate_number: entry.corporateNumber,
         })
-
-      if (!error) {
-        result.industryMapped += industryRecords.length
       }
     }
+  }
 
-    // Log unmapped EDA codes
-    const unmappedCodes = edaCodes.filter((code) => !mappedEdaCodes.has(code))
-    if (unmappedCodes.length > 0) {
-      const unmappedRecords = unmappedCodes.map((code) => ({
-        eda_code: code,
-        business_items: company.business_items || null,
-        corporate_number: company.corporate_number,
-      }))
+  // ── 5. Batch upsert: industry mappings ─────────────────────
+  if (industryRecords.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('company_industry_mapping') as any)
+      .upsert(industryRecords, { onConflict: 'company_id,jsic_code' })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('unmapped_industries') as any)
-        .upsert(unmappedRecords, {
-          onConflict: 'corporate_number,eda_code',
-          ignoreDuplicates: true,
-        })
-        .catch((err: unknown) => {
-          // Non-critical: log and continue
-          console.warn(
-            `[sync-gbizinfo] Failed to log unmapped industries for ${company.corporate_number}:`,
-            err
-          )
-        })
-
-      result.industryUnmapped += unmappedCodes.length
+    if (!error) {
+      result.industryMapped += industryRecords.length
     }
+  }
+
+  // ── 6. Batch upsert: unmapped industries ───────────────────
+  if (unmappedRecords.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('unmapped_industries') as any)
+      .upsert(unmappedRecords, {
+        onConflict: 'corporate_number,eda_code',
+        ignoreDuplicates: true,
+      })
+      .catch((err: unknown) => {
+        console.warn(
+          `[sync-gbizinfo] Failed to log ${unmappedRecords.length} unmapped industries:`,
+          err
+        )
+      })
+
+    result.industryUnmapped += unmappedRecords.length
   }
 }
