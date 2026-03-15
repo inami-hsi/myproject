@@ -37,11 +37,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // ── Prefecture rotation ────────────────────────────────
-  const today = new Date()
-  const dayOfCycle = today.getDate() % PREFECTURES_PER_DAY // 0-6
-  const start = dayOfCycle * PREFECTURES_PER_DAY
-  const todayPrefectures = PREFECTURES.slice(start, start + PREFECTURES_PER_DAY).filter(Boolean)
+  // ── Prefecture selection ───────────────────────────────
+  // Allow override via query param: ?prefectures=08,09,10
+  const url = new URL(request.url)
+  const overridePrefectures = url.searchParams.get('prefectures')
+
+  let todayPrefectures: string[]
+  let dayOfCycle: number
+
+  if (overridePrefectures) {
+    todayPrefectures = overridePrefectures.split(',').filter(Boolean)
+    dayOfCycle = -1 // manual override
+  } else {
+    const today = new Date()
+    dayOfCycle = today.getDate() % PREFECTURES_PER_DAY // 0-6
+    const start = dayOfCycle * PREFECTURES_PER_DAY
+    todayPrefectures = PREFECTURES.slice(start, start + PREFECTURES_PER_DAY).filter(Boolean)
+  }
 
   // ── Sync log ───────────────────────────────────────────
   const syncLog = await createSyncLog(
@@ -84,26 +96,25 @@ export async function POST(request: NextRequest) {
 
       try {
         let page = 1
-        let totalPages = 1
+        const PAGE_SIZE = 1000 // gBizINFO returns max 1000 per page
 
-        while (page <= totalPages) {
+        while (true) {
           const response = await client.fetchByPrefecture(prefectureCode, page)
           const companies = response['hojin-infos'] || []
-          totalPages = response.totalPage || 1
-          prefResult.pages = totalPages
+          prefResult.pages = page
 
           if (companies.length === 0) break
 
-          // ── Map to gBizINFO-only fields for upsert ───────
+          // ── Map to full company records for upsert ───────
           const upsertRecords = companies.map((item) =>
-            client.mapToGBizFields(item)
+            client.mapToCompany(item)
           )
 
-          // ── Batch upsert (only gBizINFO fields) ──────────
+          // ── Batch upsert (partitioned table requires both columns) ──
           const upsertResult = await batchUpsert(
             'companies',
             upsertRecords,
-            'corporate_number',
+            'corporate_number,prefecture_code',
             MAX_PER_PAGE
           )
 
@@ -118,6 +129,8 @@ export async function POST(request: NextRequest) {
             prefResult
           )
 
+          // If fewer than PAGE_SIZE records, we've reached the last page
+          if (companies.length < PAGE_SIZE) break
           page++
         }
       } catch (err) {
