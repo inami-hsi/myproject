@@ -1,64 +1,56 @@
 /**
- * 国税庁法人番号CSV取込スクリプト
+ * 国税庁法人番号XML取込スクリプト（PostgreSQL直接接続版）
  *
  * 使用方法:
  *   npx tsx scripts/import-nta.ts                         # 全国版ZIP → 全件取込
  *   npx tsx scripts/import-nta.ts --prefecture 13         # 東京都のみ
  *   npx tsx scripts/import-nta.ts --prefecture 13,14      # 東京・神奈川
- *   npx tsx scripts/import-nta.ts --file /path/to/csv     # CSVファイル直接指定
+ *   npx tsx scripts/import-nta.ts --file /path/to/xml     # XMLファイル直接指定
  *   npx tsx scripts/import-nta.ts --dry-run               # DB書き込みなし（検証用）
  *
  * 処理フロー:
- * 1. 全国版ZIP(/tmp/nta-csv/zenkoku.zip)を解凍 → Shift-JIS → UTF-8
- * 2. 30カラム新フォーマットをパース
+ * 1. 全国版ZIP(/tmp/nta-csv/zenkoku.zip)からXMLファイルを列挙
+ * 2. 各XMLをストリーム解析（<corporation>要素を1件ずつ）
  * 3. --prefecture指定時は該当都道府県のみ抽出
- * 4. companiesテーブルへUPSERT（5000件/バッチ）
+ * 4. PostgreSQL直接接続でバッチUPSERT（1000件/バッチ）
  *
  * 環境変数:
- *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ *   DATABASE_URL (PostgreSQL接続文字列)
  */
 
-import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
 import { execSync } from 'child_process'
+import { createReadStream } from 'fs'
+import { createInterface } from 'readline'
+import pg from 'pg'
+
+const { Client } = pg
 
 // ─── Config ────────────────────────────────────────────
 const BATCH_SIZE = 1000
 const DOWNLOAD_DIR = '/tmp/nta-csv'
 const ZENKOKU_ZIP = path.join(DOWNLOAD_DIR, 'zenkoku.zip')
 
-// ─── NTA 30-column format (2024+) ─────────────────────
-// Col  0: 序番号
-// Col  1: 法人番号
-// Col  2: 処理区分
-// Col  3: 訂正区分
-// Col  4: 更新年月日
-// Col  5: 変更事由
-// Col  6: 商号又は名称
-// Col  7: 商号又は名称イメージID
-// Col  8: 法人種別
-// Col  9: 国内所在地（都道府県）
-// Col 10: 国内所在地（市区町村）
-// Col 11: 国内所在地（丁目番地等）
-// Col 12: 国内所在地イメージID
-// Col 13: 都道府県コード
-// Col 14: 市区町村コード
-// Col 15: 郵便番号
-// Col 16: 国外所在地
-// Col 17: 国外所在地イメージID
-// Col 18: 閉鎖等の事由
-// Col 19: 閉鎖年月日
-// Col 20: 承継法人等の法人番号
-// Col 21: 変更事由の詳細
-// Col 22: 最終更新年月日           ★新
-// Col 23: 最新履歴フラグ           ★新
-// Col 24: 英語名称                 ★新
-// Col 25: 英語都道府県名           ★新
-// Col 26: 英語住所                 ★新（カンマ含む可能性あり）
-// Col 27: 英語国外所在地           ★新
-// Col 28: フリガナ                 ★旧col22→col28に移動
-// Col 29: 非表示フラグ             ★旧col23→col29に移動
+// ─── NTA XML element names ─────────────────────────────
+const TAG_MAP: Record<string, keyof NTARecord> = {
+  corporateNumber: 'corporateNumber',
+  updateDate: 'updateDate',
+  name: 'name',
+  kind: 'kind',
+  prefectureName: 'prefectureName',
+  cityName: 'cityName',
+  streetNumber: 'streetNumber',
+  prefectureCode: 'prefectureCode',
+  cityCode: 'cityCode',
+  postCode: 'postCode',
+  addressOutside: 'addressOutside',
+  closeCause: 'closeCause',
+  closeDate: 'closeDate',
+  furigana: 'furigana',
+  hihyoji: 'hihyoji',
+  enName: 'nameEn',
+}
 
 interface NTARecord {
   corporateNumber: string
@@ -79,7 +71,7 @@ interface NTARecord {
   nameEn: string
 }
 
-interface CompanyUpsert {
+interface CompanyRow {
   corporate_number: string
   name: string
   name_kana: string | null
@@ -123,16 +115,14 @@ function buildFullAddress(
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return new Date().toISOString()
-  // Already YYYY-MM-DD format
   if (dateStr.includes('-')) return dateStr
-  // YYYYMMDD format
   if (dateStr.length === 8) {
     return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
   }
   return new Date().toISOString()
 }
 
-function mapToCompanyUpsert(record: NTARecord): CompanyUpsert | null {
+function mapToCompanyRow(record: NTARecord): CompanyRow | null {
   if (!record.corporateNumber || !record.prefectureCode) return null
   if (record.hihyoji === '1') return null
 
@@ -159,69 +149,9 @@ function mapToCompanyUpsert(record: NTARecord): CompanyUpsert | null {
   }
 }
 
-// ─── CSV Parser (handles quoted fields with commas) ────
+// ─── Extract XML files from ZIP ────────────────────────
 
-function parseCsvLine(line: string): string[] {
-  const fields: string[] = []
-  let current = ''
-  let inQuotes = false
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    if (inQuotes) {
-      if (char === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"'
-          i++ // skip escaped quote
-        } else {
-          inQuotes = false
-        }
-      } else {
-        current += char
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true
-      } else if (char === ',') {
-        fields.push(current)
-        current = ''
-      } else {
-        current += char
-      }
-    }
-  }
-  fields.push(current)
-  return fields
-}
-
-function parseNTALine(cols: string[]): NTARecord {
-  // 30-column new format: furigana=col28, hihyoji=col29
-  // 24-column old format: furigana=col22, hihyoji=col23
-  const isNewFormat = cols.length >= 28
-
-  return {
-    corporateNumber: cols[1] || '',
-    updateDate: cols[4] || '',
-    name: cols[6] || '',
-    kind: cols[8] || '',
-    prefectureName: cols[9] || '',
-    cityName: cols[10] || '',
-    streetNumber: cols[11] || '',
-    prefectureCode: cols[13] || '',
-    cityCode: cols[14] || '',
-    postCode: cols[15] || '',
-    addressOutside: cols[16] || '',
-    closeCause: cols[18] || '',
-    closeDate: cols[19] || '',
-    furigana: isNewFormat ? (cols[28] || '') : (cols[22] || ''),
-    hihyoji: isNewFormat ? (cols[29] || '') : (cols[23] || ''),
-    nameEn: isNewFormat ? (cols[24] || '') : '',
-  }
-}
-
-// ─── Extract ZIP ──────────────────────────────────────
-
-function extractZenkokuCsv(): string {
+function listXmlFiles(): string[] {
   if (!fs.existsSync(ZENKOKU_ZIP)) {
     throw new Error(
       `全国版ZIPが見つかりません: ${ZENKOKU_ZIP}\n` +
@@ -229,155 +159,195 @@ function extractZenkokuCsv(): string {
     )
   }
 
-  // Find CSV name in ZIP
   const listOutput = execSync(
-    `python3 -c "import zipfile; z=zipfile.ZipFile('${ZENKOKU_ZIP}'); print('\\n'.join(i.filename for i in z.infolist() if i.filename.endswith('.csv')))"`,
+    `python3 -c "import zipfile; z=zipfile.ZipFile('${ZENKOKU_ZIP}'); print('\\n'.join(sorted(i.filename for i in z.infolist() if i.filename.endswith('.xml') and not i.filename.endswith('.asc'))))"`,
   ).toString().trim()
 
-  const csvName = listOutput.split('\n')[0]
-  if (!csvName) throw new Error('ZIPにCSVファイルが見つかりません')
+  const xmlFiles = listOutput.split('\n').filter(Boolean)
+  if (xmlFiles.length === 0) throw new Error('ZIPにXMLファイルが見つかりません')
+  return xmlFiles
+}
 
-  const csvPath = path.join(DOWNLOAD_DIR, csvName)
+function extractXmlFile(xmlName: string): string {
+  const xmlPath = path.join(DOWNLOAD_DIR, xmlName)
 
-  if (fs.existsSync(csvPath)) {
-    console.log(`Using cached: ${csvName}`)
-    return csvPath
+  if (fs.existsSync(xmlPath)) {
+    console.log(`  Using cached: ${xmlName}`)
+    return xmlPath
   }
 
-  console.log(`Extracting: ${csvName} ...`)
+  console.log(`  Extracting: ${xmlName} ...`)
   execSync(
-    `python3 -c "import zipfile; zipfile.ZipFile('${ZENKOKU_ZIP}').extract('${csvName}', '${DOWNLOAD_DIR}')"`,
+    `python3 -c "import zipfile; zipfile.ZipFile('${ZENKOKU_ZIP}').extract('${xmlName}', '${DOWNLOAD_DIR}')"`,
   )
 
-  if (!fs.existsSync(csvPath)) {
-    throw new Error(`解凍後のCSVが見つかりません: ${csvPath}`)
+  if (!fs.existsSync(xmlPath)) {
+    throw new Error(`解凍後のXMLが見つかりません: ${xmlPath}`)
   }
-
-  return csvPath
+  return xmlPath
 }
 
-// ─── Streaming CSV Reader ─────────────────────────────
+// ─── Streaming XML Reader ──────────────────────────────
 
-async function* readCsvRecords(
-  csvPath: string,
+function emptyRecord(): NTARecord {
+  return {
+    corporateNumber: '', updateDate: '', name: '', kind: '',
+    prefectureName: '', cityName: '', streetNumber: '',
+    prefectureCode: '', cityCode: '', postCode: '',
+    addressOutside: '', closeCause: '', closeDate: '',
+    furigana: '', hihyoji: '', nameEn: '',
+  }
+}
+
+const TAG_REGEX = /^\s*<(\w+)>(.*?)<\/\1>\s*$/
+const SELF_CLOSE_REGEX = /^\s*<(\w+)\/>\s*$/
+
+async function* readXmlRecords(
+  xmlPath: string,
   filterPrefectures?: Set<string>
 ): AsyncGenerator<NTARecord> {
-  console.log(`Reading: ${path.basename(csvPath)}`)
+  const rl = createInterface({
+    input: createReadStream(xmlPath, { encoding: 'utf8' }),
+    crlfDelay: Infinity,
+  })
 
-  const CHUNK_SIZE = 64 * 1024 * 1024 // 64MB chunks
-  const fileSize = fs.statSync(csvPath).size
-  const fd = fs.openSync(csvPath, 'r')
-  const decoder = new TextDecoder('shift-jis', { fatal: false })
-
+  let current: NTARecord | null = null
   let lineCount = 0
   let yieldCount = 0
-  let leftover = ''
-  let bytesRead = 0
 
-  try {
-    const buf = Buffer.alloc(CHUNK_SIZE)
-    while (true) {
-      const n = fs.readSync(fd, buf, 0, CHUNK_SIZE, null)
-      if (n === 0) break
-      bytesRead += n
+  for await (const line of rl) {
+    lineCount++
 
-      const chunk = decoder.decode(buf.subarray(0, n), { stream: true })
-      const text = leftover + chunk
-      const lines = text.split('\n')
+    if (line.includes('<corporation>')) {
+      current = emptyRecord()
+      continue
+    }
 
-      // Last element may be incomplete line
-      leftover = lines.pop() || ''
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed) continue
-        lineCount++
-
-        // Quick prefecture filter before full parse (col 13 = prefecture code)
-        if (filterPrefectures) {
-          const cols = parseCsvLine(trimmed)
-          if (cols.length < 16) continue
-          const prefCode = (cols[13] || '').padStart(2, '0')
-          if (!filterPrefectures.has(prefCode)) continue
-
-          const record = parseNTALine(cols)
-          if (!record.corporateNumber) continue
+    if (line.includes('</corporation>')) {
+      if (current && current.corporateNumber) {
+        const prefCode = current.prefectureCode.padStart(2, '0')
+        if (!filterPrefectures || filterPrefectures.has(prefCode)) {
           yieldCount++
-          yield record
-        } else {
-          const cols = parseCsvLine(trimmed)
-          if (cols.length < 16) continue
-
-          const record = parseNTALine(cols)
-          if (!record.corporateNumber) continue
-          yieldCount++
-          yield record
+          yield current
         }
       }
+      current = null
+      continue
+    }
 
-      if (lineCount % 1000000 === 0) {
-        const pct = ((bytesRead / fileSize) * 100).toFixed(0)
-        console.log(`  Reading: ${pct}% (${lineCount.toLocaleString()} lines)`)
+    if (!current) continue
+
+    const selfClose = SELF_CLOSE_REGEX.exec(line)
+    if (selfClose) continue
+
+    const match = TAG_REGEX.exec(line)
+    if (match) {
+      const tagName = match[1]
+      const value = match[2]
+      const field = TAG_MAP[tagName]
+      if (field) {
+        current[field] = value
       }
     }
 
-    // Process leftover
-    if (leftover.trim()) {
-      const cols = parseCsvLine(leftover.trim())
-      if (cols.length >= 16) {
-        const record = parseNTALine(cols)
-        if (record.corporateNumber) {
-          if (!filterPrefectures || filterPrefectures.has(record.prefectureCode.padStart(2, '0'))) {
-            yieldCount++
-            yield record
-          }
-        }
-      }
+    if (lineCount % 5000000 === 0) {
+      console.log(`    ${lineCount.toLocaleString()} lines processed, ${yieldCount.toLocaleString()} matched`)
     }
-  } finally {
-    fs.closeSync(fd)
   }
 
-  console.log(`  Lines read: ${lineCount.toLocaleString()}, Matched: ${yieldCount.toLocaleString()}`)
+  console.log(`    Total: ${lineCount.toLocaleString()} lines, ${yieldCount.toLocaleString()} matched`)
 }
 
-// ─── DB Operations ─────────────────────────────────────
+// ─── DB Operations (PostgreSQL direct) ─────────────────
 
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
+const UPSERT_SQL = `
+  INSERT INTO companies (
+    corporate_number, name, name_kana, prefecture_code, prefecture_name,
+    city_code, city_name, postal_code, address, full_address,
+    corporate_type, status, nta_updated_at
+  )
+  SELECT * FROM UNNEST(
+    $1::text[], $2::text[], $3::text[], $4::text[], $5::text[],
+    $6::text[], $7::text[], $8::text[], $9::text[], $10::text[],
+    $11::text[], $12::text[], $13::timestamptz[]
+  )
+  ON CONFLICT (corporate_number, prefecture_code)
+  DO UPDATE SET
+    name = EXCLUDED.name,
+    name_kana = EXCLUDED.name_kana,
+    prefecture_name = EXCLUDED.prefecture_name,
+    city_code = EXCLUDED.city_code,
+    city_name = EXCLUDED.city_name,
+    postal_code = EXCLUDED.postal_code,
+    address = EXCLUDED.address,
+    full_address = EXCLUDED.full_address,
+    corporate_type = EXCLUDED.corporate_type,
+    status = EXCLUDED.status,
+    nta_updated_at = EXCLUDED.nta_updated_at,
+    updated_at = NOW()
+`
 
 async function upsertBatch(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  records: CompanyUpsert[],
+  connString: string,
+  records: CompanyRow[],
   batchNum: number
 ): Promise<{ inserted: number; failed: number }> {
-  const MAX_RETRIES = 3
+  const cols = {
+    corporate_number: [] as string[],
+    name: [] as string[],
+    name_kana: [] as (string | null)[],
+    prefecture_code: [] as string[],
+    prefecture_name: [] as string[],
+    city_code: [] as (string | null)[],
+    city_name: [] as (string | null)[],
+    postal_code: [] as (string | null)[],
+    address: [] as (string | null)[],
+    full_address: [] as (string | null)[],
+    corporate_type: [] as (string | null)[],
+    status: [] as string[],
+    nta_updated_at: [] as string[],
+  }
 
+  for (const r of records) {
+    cols.corporate_number.push(r.corporate_number)
+    cols.name.push(r.name)
+    cols.name_kana.push(r.name_kana)
+    cols.prefecture_code.push(r.prefecture_code)
+    cols.prefecture_name.push(r.prefecture_name)
+    cols.city_code.push(r.city_code)
+    cols.city_name.push(r.city_name)
+    cols.postal_code.push(r.postal_code)
+    cols.address.push(r.address)
+    cols.full_address.push(r.full_address)
+    cols.corporate_type.push(r.corporate_type)
+    cols.status.push(r.status)
+    cols.nta_updated_at.push(r.nta_updated_at)
+  }
+
+  const MAX_RETRIES = 5
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const client = new Client({ connectionString: connString, ssl: { rejectUnauthorized: false } })
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('companies') as any)
-        .upsert(records, { onConflict: 'corporate_number,prefecture_code' })
-
-      if (error) {
-        if (error.message.includes('timeout') && attempt < MAX_RETRIES) {
-          console.warn(`  Batch ${batchNum} timeout (attempt ${attempt}/${MAX_RETRIES}), retrying...`)
-          await sleep(2000 * attempt)
-          continue
-        }
-        console.error(`  Batch ${batchNum} error: ${error.message}`)
-        return { inserted: 0, failed: records.length }
-      }
+      await client.connect()
+      await client.query(UPSERT_SQL, [
+        cols.corporate_number, cols.name, cols.name_kana,
+        cols.prefecture_code, cols.prefecture_name,
+        cols.city_code, cols.city_name, cols.postal_code,
+        cols.address, cols.full_address,
+        cols.corporate_type, cols.status, cols.nta_updated_at,
+      ])
+      await client.end()
       return { inserted: records.length, failed: 0 }
     } catch (err) {
+      await client.end().catch(() => {})
+      const msg = err instanceof Error ? err.message : String(err)
       if (attempt < MAX_RETRIES) {
-        console.warn(`  Batch ${batchNum} exception (attempt ${attempt}/${MAX_RETRIES}), retrying...`)
-        await sleep(2000 * attempt)
+        const delay = 3000 * attempt
+        console.warn(`  Batch ${batchNum} error (attempt ${attempt}/${MAX_RETRIES}): ${msg.slice(0, 100)}, retrying in ${delay}ms...`)
+        await new Promise(r => setTimeout(r, delay))
         continue
       }
-      console.error(`  Batch ${batchNum} exception:`, err)
+      console.error(`  Batch ${batchNum} failed: ${msg.slice(0, 200)}`)
       return { inserted: 0, failed: records.length }
     }
   }
@@ -399,97 +369,116 @@ async function main() {
     )
   }
 
-  let csvPath: string
+  let xmlFiles: string[]
   if (fileIdx >= 0 && args[fileIdx + 1]) {
-    csvPath = args[fileIdx + 1]
-    if (!fs.existsSync(csvPath)) {
-      console.error(`File not found: ${csvPath}`)
+    const filePath = args[fileIdx + 1]
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`)
       process.exit(1)
     }
+    xmlFiles = [filePath]
   } else {
-    csvPath = extractZenkokuCsv()
+    xmlFiles = listXmlFiles()
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!dryRun && (!supabaseUrl || !supabaseKey)) {
-    console.error('Missing: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY')
+  const databaseUrl = process.env.DATABASE_URL
+  if (!dryRun && !databaseUrl) {
+    console.error('Missing: DATABASE_URL')
     process.exit(1)
   }
 
-  const supabase = !dryRun ? createClient(supabaseUrl!, supabaseKey!) : null
+  // Verify connection
+  if (!dryRun) {
+    const client = new Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } })
+    await client.connect()
+    const res = await client.query('SELECT count(*) FROM companies')
+    console.log(`DB connected. Current companies: ${Number(res.rows[0].count).toLocaleString()}`)
+    await client.end()
+  }
 
   console.log('╔════════════════════════════════════════════╗')
-  console.log('║   NTA Corporate Number CSV Import          ║')
+  console.log('║   NTA Corporate Number XML Import          ║')
+  console.log('║   (PostgreSQL Direct Connection)           ║')
   console.log('╚════════════════════════════════════════════╝')
-  console.log(`CSV: ${path.basename(csvPath)}`)
+  console.log(`XML files: ${xmlFiles.length}`)
   console.log(`Filter: ${filterPrefectures ? Array.from(filterPrefectures).join(',') : 'ALL'}`)
   console.log(`Batch: ${BATCH_SIZE.toLocaleString()}`)
-  console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`)
+  console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE (PostgreSQL direct)'}`)
   console.log('')
+
+  // Helper to run a one-off query
+  async function dbQuery(sql: string, params?: unknown[]) {
+    const c = new Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } })
+    await c.connect()
+    try {
+      return await c.query(sql, params)
+    } finally {
+      await c.end()
+    }
+  }
 
   // Sync log
   let syncLogId: string | null = null
-  if (supabase) {
-    const { data: syncLog } = await supabase
-      .from('sync_logs')
-      .insert({
-        source: 'nta',
-        sync_type: filterPrefectures ? 'partial' : 'full',
-        target_prefecture: filterPrefectures ? Array.from(filterPrefectures).join(',') : 'all',
-      })
-      .select('id')
-      .single()
-    syncLogId = syncLog?.id || null
+  if (!dryRun) {
+    const res = await dbQuery(
+      `INSERT INTO sync_logs (source, sync_type, target_prefecture) VALUES ($1, $2, $3) RETURNING id`,
+      ['nta', filterPrefectures ? 'incremental' : 'full', filterPrefectures ? Array.from(filterPrefectures).join(',') : 'all']
+    )
+    syncLogId = res.rows[0]?.id || null
   }
 
   const startTime = Date.now()
   const totals = { processed: 0, inserted: 0, skipped: 0, failed: 0 }
   const prefStats = new Map<string, number>()
-  let batch: CompanyUpsert[] = []
+  let batch: CompanyRow[] = []
   let batchCount = 0
-  const totalBatchesEstimate = filterPrefectures
-    ? '?'
-    : Math.ceil(5750000 / BATCH_SIZE).toLocaleString()
 
-  for await (const record of readCsvRecords(csvPath, filterPrefectures)) {
-    totals.processed++
-    const mapped = mapToCompanyUpsert(record)
-    if (!mapped) {
-      totals.skipped++
-      continue
-    }
+  for (let fi = 0; fi < xmlFiles.length; fi++) {
+    const xmlName = xmlFiles[fi]
+    console.log(`\n[${fi + 1}/${xmlFiles.length}] ${xmlName}`)
 
-    batch.push(mapped)
-    prefStats.set(mapped.prefecture_code, (prefStats.get(mapped.prefecture_code) || 0) + 1)
+    const xmlPath = xmlName.startsWith('/') ? xmlName : extractXmlFile(xmlName)
 
-    if (batch.length >= BATCH_SIZE) {
-      batchCount++
-      if (!dryRun && supabase) {
-        const result = await upsertBatch(supabase, batch, batchCount)
-        totals.inserted += result.inserted
-        totals.failed += result.failed
-      } else {
-        totals.inserted += batch.length
+    for await (const record of readXmlRecords(xmlPath, filterPrefectures)) {
+      totals.processed++
+      const mapped = mapToCompanyRow(record)
+      if (!mapped) {
+        totals.skipped++
+        continue
       }
 
-      if (batchCount % 100 === 0) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0)
-        console.log(
-          `  Batch ${batchCount}/${totalBatchesEstimate} | ` +
-          `${totals.inserted.toLocaleString()} upserted | ` +
-          `${elapsed}s elapsed`
-        )
+      batch.push(mapped)
+      prefStats.set(mapped.prefecture_code, (prefStats.get(mapped.prefecture_code) || 0) + 1)
+
+      if (batch.length >= BATCH_SIZE) {
+        batchCount++
+        if (!dryRun) {
+          const result = await upsertBatch(databaseUrl!, batch, batchCount)
+          totals.inserted += result.inserted
+          totals.failed += result.failed
+        } else {
+          totals.inserted += batch.length
+        }
+
+        if (batchCount % 200 === 0) {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(0)
+          console.log(
+            `  Batch ${batchCount} | ` +
+            `${totals.inserted.toLocaleString()} upserted | ` +
+            `${totals.failed.toLocaleString()} failed | ` +
+            `${elapsed}s elapsed`
+          )
+        }
+        batch = []
       }
-      batch = []
     }
   }
 
   // Flush remaining batch
   if (batch.length > 0) {
     batchCount++
-    if (!dryRun && supabase) {
-      const result = await upsertBatch(supabase, batch, batchCount)
+    if (!dryRun) {
+      const result = await upsertBatch(databaseUrl!, batch, batchCount)
       totals.inserted += result.inserted
       totals.failed += result.failed
     } else {
@@ -500,17 +489,11 @@ async function main() {
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1)
 
   // Update sync log
-  if (supabase && syncLogId) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        status: totals.failed > 0 ? 'completed_with_errors' : 'completed',
-        records_processed: totals.processed,
-        records_inserted: totals.inserted,
-        records_failed: totals.failed,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', syncLogId)
+  if (!dryRun && syncLogId) {
+    await dbQuery(
+      `UPDATE sync_logs SET status = $1, records_processed = $2, records_inserted = $3, records_failed = $4, completed_at = NOW() WHERE id = $5`,
+      [totals.failed > 0 ? 'completed_with_errors' : 'completed', totals.processed, totals.inserted, totals.failed, syncLogId]
+    )
   }
 
   console.log('\n════════════════════════════════════════════')
@@ -523,7 +506,6 @@ async function main() {
   console.log(`  Failed:    ${totals.failed.toLocaleString()}`)
   console.log('')
 
-  // Per-prefecture summary
   const sortedPrefs = Array.from(prefStats.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   console.log('  Per-prefecture:')
   for (const [code, count] of sortedPrefs) {
